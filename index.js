@@ -2,25 +2,41 @@ const { Telegraf, Markup } = require('telegraf');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// --- DETECTOR DE NEGOCIOS EN GRUPOS ---
+// --- 1. SALUDO AUTOMÁTICO AL ENTRAR A UN GRUPO ---
+bot.on('new_chat_members', (ctx) => {
+    // Verificamos si el nuevo miembro es el bot
+    const botId = ctx.botInfo.id;
+    const isBotAdded = ctx.message.new_chat_members.some(member => member.id === botId);
+
+    if (isBotAdded) {
+        return ctx.replyWithMarkdown(
+            `🛡️ *¡Vandox Safe activado en este grupo!*\n\n` +
+            `Hola, soy vuestro notario digital. Estoy aquí para asegurar que este intercambio sea 100% seguro para ambas partes.\n\n` +
+            `¿Qué deseáis hacer?`,
+            Markup.inlineKeyboard([
+                [Markup.button.callback('💰 Iniciar Venta (Escrow)', 'nuevo_escrow')],
+                [Markup.button.callback('🤝 Iniciar Trueque (Swap)', 'nuevo_swap')]
+            ])
+        );
+    }
+});
+
+// --- 2. DETECTOR DE PALABRAS CLAVE (Por si ya estaba en el grupo) ---
 bot.on('message', async (ctx) => {
-    // Solo actuamos si es un grupo
     if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
         const text = ctx.message.text?.toLowerCase();
-        
-        // Palabras clave que activan a Vandox
         const palabrasClave = ['vendo', 'compro', 'sell', 'buy', 'precio', 'price', 'swap', 'cambio'];
         
         if (text && palabrasClave.some(palabra => text.includes(palabra))) {
-            return ctx.reply(`🛡️ *Vandox Safe detectado:* ¿Necesitáis asegurar esta transacción para evitar estafas?`, 
+            // Solo salta si no ha saludado antes (opcional)
+            return ctx.reply(`🛡️ *Vandox Alert:* He detectado una negociación. ¿Queréis usar la Bóveda Segura?`, 
             Markup.inlineKeyboard([
-                [Markup.button.callback('🤝 Asegurar Trato (Escrow)', 'iniciar_en_grupo')],
-                [Markup.button.callback('❌ Ignorar', 'cancelar')]
-            ], { parse_mode: 'Markdown' }));
+                [Markup.button.callback('🤝 Asegurar con Vandox', 'iniciar_en_grupo')]
+            ]));
         }
     }
 
-    // Si es un chat privado, mostramos el menú normal
+    // Respuesta en chat privado
     if (ctx.chat.type === 'private' && ctx.message.text === '/start') {
         ctx.replyWithMarkdown('🛡️ *Vandox Safe Bot*\nSelecciona tu idioma:', Markup.inlineKeyboard([
             [Markup.button.callback('Español 🇪🇸', 'lang_es'), Markup.button.callback('English 🇺🇸', 'lang_en')]
@@ -28,21 +44,22 @@ bot.on('message', async (ctx) => {
     }
 });
 
-// --- ACCIÓN AL PULSAR "ASEGURAR TRATO" EN UN GRUPO ---
+// --- LÓGICA DE BOTONES ---
+
 bot.action('iniciar_en_grupo', (ctx) => {
-    ctx.replyWithMarkdown(
-        `🚀 *¡Bóveda Vandox Activada!*\n\n` +
-        `Para comenzar, el **Vendedor** debe configurar el monto pulsando el botón de abajo.\n` +
-        `Yo me encargaré de custodiar el pago y los archivos.`,
-        Markup.inlineKeyboard([
-            [Markup.button.callback('💰 Configurar Venta', 'nuevo_escrow')]
-        ])
-    );
+    ctx.editMessageText('🚀 *Bóveda Activada.* ¿Quién inicia la configuración?', 
+    Markup.inlineKeyboard([
+        [Markup.button.callback('💰 Soy el Vendedor', 'nuevo_escrow')],
+        [Markup.button.callback('🔄 Es un Trueque', 'nuevo_swap')]
+    ]));
 });
 
-// (Aquí seguiría el resto de tu lógica de montos y pagos que ya teníamos)
 bot.action('nuevo_escrow', (ctx) => {
-    ctx.reply('✍️ Indica el valor total de la venta en USD:');
+    ctx.reply('✍️ *Vendedor:* Indica el precio total en USD:');
+});
+
+bot.action('nuevo_swap', (ctx) => {
+    ctx.reply('🔄 *Modo Trueque:* La tarifa de protección es de $2.00 fijos por la mediación.');
 });
 
 bot.action('lang_es', (ctx) => {
@@ -50,10 +67,6 @@ bot.action('lang_es', (ctx) => {
         [Markup.button.callback('💰 Nueva Venta', 'nuevo_escrow')],
         [Markup.button.callback('📊 Tarifas', 'ver_tarifas')]
     ]));
-});
-
-bot.action('ver_tarifas', (ctx) => {
-    ctx.reply('📊 Tarifas: $0.80 (<$15) o 3% (>$15).');
 });
 
 bot.launch();
