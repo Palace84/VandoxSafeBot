@@ -1,58 +1,76 @@
 const { Telegraf, Markup } = require('telegraf');
 
-// El bot usa el Token que configuraste en Railway
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// --- BIENVENIDA Y SELECCIÓN DE IDIOMA ---
-bot.start((ctx) => {
-    const welcomeMsg = `
-🛡️ *Welcome to Vandox Safe Bot*
-The secure vault for your digital trades.
+// Base de datos temporal
+let transacciones = {};
 
-🌍 *Choose your language / Selecciona tu idioma:*
-    `;
-    ctx.replyWithMarkdown(welcomeMsg, Markup.inlineKeyboard([
-        [Markup.button.callback('Español 🇪🇸', 'lang_es'), Markup.button.callback('English 🇺🇸', 'lang_en')],
-        [Markup.button.callback('हिन्दी (Hindi) 🇮🇳', 'lang_hi'), Markup.button.callback('日本語 (Japanese) 🇯🇵', 'lang_jp')]
+bot.start((ctx) => {
+    ctx.replyWithMarkdown('🛡️ *Vandox Safe Bot*\nSelecciona tu idioma / Select language:', Markup.inlineKeyboard([
+        [Markup.button.callback('Español 🇪🇸', 'lang_es'), Markup.button.callback('English 🇺🇸', 'lang_en')]
     ]));
 });
 
-// --- LÓGICA PARA ESPAÑOL ---
 bot.action('lang_es', (ctx) => {
-    ctx.editMessageText('✅ *Idioma: Español*\n\nBienvenido a Vandox. ¿Qué deseas hacer hoy?', 
+    ctx.editMessageText('✅ *Vandox Safe: Menú Principal*\n¿Qué deseas hacer?', 
     { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-        [Markup.button.callback('🤝 Iniciar Trueque (Swap)', 'start_swap')],
-        [Markup.button.callback('💰 Iniciar Venta (Escrow)', 'start_sale')]
+        [Markup.button.callback('🤝 Nuevo Escrow (Venta)', 'nuevo_escrow')],
+        [Markup.button.callback('📊 Ver Tarifas Globales', 'ver_tarifas')]
     ])});
 });
 
-// --- LÓGICA PARA INGLÉS ---
-bot.action('lang_en', (ctx) => {
-    ctx.editMessageText('✅ *Language: English*\n\nWelcome to Vandox. What would you like to do?', 
-    { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-        [Markup.button.callback('🤝 Start Swap', 'start_swap')],
-        [Markup.button.callback('💰 Start Sale', 'start_sale')]
-    ])});
+bot.action('nuevo_escrow', (ctx) => {
+    transacciones[ctx.from.id] = { etapa: 'esperando_monto' };
+    ctx.reply('✍️ *Paso 1:* Indica el valor total de la venta en USD (ej: 10 o 50):');
 });
 
-// --- RESPUESTA A BOTONES DE ACCIÓN (Provisional) ---
-bot.action('start_swap', (ctx) => {
-    ctx.reply('🚧 *Fase de Bóveda:* Esta función estará lista en cuanto configuremos el grupo de 3. ¡Estamos en ello!');
-});
+bot.on('text', (ctx) => {
+    const userId = ctx.from.id;
+    if (transacciones[userId]?.etapa === 'esperando_monto') {
+        const monto = parseFloat(ctx.message.text);
+        if (isNaN(monto)) return ctx.reply('❌ Introduce un número válido.');
 
-bot.action('start_sale', (ctx) => {
-    ctx.reply('💰 *Vandox Escrow:* Preparando la pasarela de pago segura...');
-});
+        transacciones[userId].monto = monto;
+        transacciones[userId].etapa = 'eligiendo_quien_paga';
 
-// --- DETECCIÓN EN GRUPOS ---
-bot.on('message', (ctx) => {
-    if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
-        const text = ctx.message.text?.toLowerCase();
-        if (text?.includes('vender') || text?.includes('sell') || text?.includes('comprar')) {
-            ctx.reply(`⚠️ *Vandox Alert:* He detectado una posible transacción. Para vuestra seguridad, usad Vandox Safe.`);
-        }
+        ctx.replyWithMarkdown(`💰 *Monto:* $${monto}\n\n¿Quién paga la comisión de seguridad?`, 
+        Markup.inlineKeyboard([
+            [Markup.button.callback('👤 Comprador', 'paga_comprador')],
+            [Markup.button.callback('👤 Vendedor', 'paga_vendedor')],
+            [Markup.button.callback('🤝 50% / 50%', 'paga_split')]
+        ]));
     }
 });
 
+// Lógica de quién paga y cálculo de comisión flexible
+const manejarPago = (ctx, tipo) => {
+    const userId = ctx.from.id;
+    const monto = transacciones[userId].monto;
+    
+    // Tarifas super flexibles (Pensadas para India/Latam)
+    let comision = monto < 15 ? 0.80 : monto * 0.03; // $0.80 si es < $15, sino 3%
+    
+    let mensaje = `📦 *Orden Vandox Safe*\n\nValor: $${monto}\nComisión: $${comision.toFixed(2)}\n`;
+    
+    if (tipo === 'comprador') mensaje += `💳 *Total Comprador:* $${(monto + comision).toFixed(2)}`;
+    if (tipo === 'vendedor') mensaje += `💳 *Vendedor recibe:* $${(monto - comision).toFixed(2)}`;
+    if (tipo === 'split') mensaje += `🤝 *Cada uno paga:* $${(comision / 2).toFixed(2)}`;
+
+    ctx.editMessageText(mensaje + `\n\n¿Proceder al pago seguro?`, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('💳 Ir a pagar', 'pagar_crypto')],
+            [Markup.button.callback('❌ Cancelar', 'lang_es')]
+        ])
+    });
+};
+
+bot.action('paga_comprador', (ctx) => manejarPago(ctx, 'comprador'));
+bot.action('paga_vendedor', (ctx) => manejarPago(ctx, 'vendedor'));
+bot.action('paga_split', (ctx) => manejarPago(ctx, 'split'));
+
+bot.action('pagar_crypto', (ctx) => {
+    ctx.reply('🏦 *Pasarela:* Envía el pago a tu dirección de USDT (Aún no configurada).');
+});
+
 bot.launch();
-console.log("🚀 Vandox Safe Bot está en marcha...");
