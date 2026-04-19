@@ -1,4 +1,5 @@
 const { Telegraf, Markup } = require('telegraf');
+const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
