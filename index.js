@@ -7,7 +7,7 @@ const ADMIN_ID = process.env.ADMIN_ID;
 const WALLET_TON = 'UQAfvihg2RIt_PFSTfBOYLYC-8ABrUd1IbAxUItFAOVmc8lH';
 
 function calcFee(amount) {
-    return amount < 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
+    return amount <= 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
 }
 function genCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
 function genTxId() { return 'VDX-' + Math.floor(1000 + Math.random() * 9000); }
