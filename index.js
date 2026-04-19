@@ -267,12 +267,53 @@ bot.action(/^paid_(.+)$/, async (ctx) => {
     const lang = tx.lang || 'en';
     await saveTx({ ...tx, estado: 'verificando_pago' });
     ctx.replyWithMarkdown(txt(lang, 'paidNotif'));
-    await notifyAdmin(
-        txt(lang, 'adminNotif', { txid: txId, total: String(tx.total_depositar || tx.total || '?'), code: tx.code, group: tx.grupo_id }) +
-        '\n\n✅ /liberar ' + txId + '\n⚠️ /disputar ' + txId
-    );
+    const adminMsg = txt(lang, 'adminNotif', {
+        txid: txId,
+        total: String(tx.total_depositar || tx.total || '?'),
+        code: tx.code,
+        group: tx.grupo_id
+    });
+    try {
+        await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '✅ Liberar fondos', callback_data: 'admin_liberar_' + txId },
+                    { text: '⚠️ Disputar', callback_data: 'admin_disputar_' + txId }
+                ]]
+            }
+        });
+    } catch (e) { console.log('Admin error:', e.message); }
 });
 
+bot.action(/^admin_liberar_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    await saveTx({ ...tx, estado: 'liberado' });
+    const lang = tx.lang || 'en';
+    const msg = txt(lang, 'released', { txid: txId });
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
+    ctx.editMessageText('✅ Fondos liberados: ' + txId);
+});
+
+bot.action(/^admin_disputar_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    await saveTx({ ...tx, estado: 'disputa' });
+    const lang = tx.lang || 'en';
+    const msg = txt(lang, 'disputed');
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    ctx.editMessageText('⚠️ Disputa activada: ' + txId);
+});
 // BOTON: CANCELAR
 bot.action(/^cancel_(.+)$/, async (ctx) => {
     await ctx.answerCbQuery();
