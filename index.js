@@ -340,7 +340,56 @@ bot.action('swap_private', (ctx) => {
     const lang = getLang(ctx);
     ctx.replyWithMarkdown(txt(lang, 'swapReady', { code: genCode(), txid: genTxId() }));
 });
+// VERIFICACION AUTOMATICA ON-CHAIN
+async function verificarPagosOnChain() {
+    try {
+        const { data: txsPendientes } = await supabase
+            .from('transacciones')
+            .select('*')
+            .eq('estado', 'verificando_pago');
 
+        if (!txsPendientes || txsPendientes.length === 0) return;
+
+        const response = await fetch(
+            'https://toncenter.com/api/v2/getTransactions?address=' + WALLET_TON + '&limit=20&to_lt=0&archival=false',
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+        const data = await response.json();
+        if (!data.ok || !data.result) return;
+
+        const transaccionesChain = data.result;
+
+        for (const tx of txsPendientes) {
+            const totalEsperado = tx.total_depositar || tx.total;
+            if (!totalEsperado) continue;
+
+            const pagoEncontrado = transaccionesChain.find(t => {
+                const mensaje = t.in_msg?.message || '';
+                const valor = parseFloat(t.in_msg?.value || '0') / 1e9;
+                const ahora = Math.floor(Date.now() / 1000);
+                const reciente = (ahora - t.utime) < 3600;
+                return reciente && (
+                    mensaje.includes(tx.code) ||
+                    Math.abs(valor - totalEsperado) < 0.01
+                );
+            });
+
+            if (pagoEncontrado) {
+                await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
+                const lang = tx.lang || 'en';
+                const msg = txt(lang, 'released', { txid: tx.id });
+                if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+                if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+                if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🎉 *Pago verificado automáticamente en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
+                await notifyAdmin('✅ Pago verificado on-chain automáticamente\nTX: ' + tx.id + '\nImporte: $' + totalEsperado);
+            }
+        }
+    } catch (e) {
+        console.log('Error verificacion chain:', e.message);
+    }
+}
+
+setInterval(verificarPagosOnChain, 120000);
 bot.launch();
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
