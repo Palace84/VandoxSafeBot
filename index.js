@@ -178,89 +178,29 @@ bot.command('disputar', async (ctx) => {
     ctx.reply('⚠️ Disputa activada para TX: ' + txId);
 });
 
-// --- ESCUCHA EN GRUPOS ---
-bot.on('message', async (ctx) => {
+bot.on('message', async (ctx, next) => {
     const text = ctx.message?.text;
-    const chatId = ctx.chat.id;
+    const chatId = String(ctx.chat.id);
     const lang = getLang(ctx);
 
-    if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
-        if (!text) return;
+    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return next();
+    if (!text) return next();
 
-        const lower = text.toLowerCase();
-        const isTrigger = triggers.some(t => lower.includes(t));
+    const lower = text.toLowerCase();
+    const isTrigger = triggers.some(t => lower.includes(t));
 
-        if (isTrigger) {
-            return ctx.replyWithMarkdown(
-                t(lang, 'detected'),
-                Markup.inlineKeyboard([
-                    [Markup.button.callback(t(lang, 'startBtn'), 'iniciar_trato_' + lang)],
-                    [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
-                ])
-            );
-        }
+    if (isTrigger) {
+        return ctx.replyWithMarkdown(
+            t(lang, 'detected'),
+            Markup.inlineKeyboard([
+                [Markup.button.callback(t(lang, 'startBtn'), 'iniciar_trato_' + lang)],
+                [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
+            ])
+        );
     }
-});
 
-// --- BOTONES DE GRUPO ---
-bot.action(/iniciar_trato_(.+)/, async (ctx) => {
-    const lang = ctx.match[1] || getLang(ctx);
-    await ctx.answerCbQuery();
-    ctx.replyWithMarkdown(
-        t(lang, 'welcome'),
-        Markup.inlineKeyboard([
-            [Markup.button.callback(t(lang, 'saleBtn'), 'start_sale_' + lang)],
-            [Markup.button.callback(t(lang, 'swapBtn'), 'start_swap_' + lang)],
-            [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
-        ])
-    );
-});
-
-// --- INICIAR VENTA ---
-bot.action(/start_sale_(.+)/, async (ctx) => {
-    const lang = ctx.match[1] || getLang(ctx);
-    await ctx.answerCbQuery();
-    const txId = genTxId();
-    const code = genCode();
-    const tx = {
-        id: txId,
-        grupo_id: String(ctx.chat.id),
-        estado: 'esperando_vendedor_precio',
-        lang: lang,
-        code: code,
-        tipo: 'venta'
-    };
-    await saveTx(tx);
-    ctx.replyWithMarkdown(t(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_');
-});
-
-// --- INICIAR SWAP ---
-bot.action(/start_swap_(.+)/, async (ctx) => {
-    const lang = ctx.match[1] || getLang(ctx);
-    await ctx.answerCbQuery();
-    const txId = genTxId();
-    const code = genCode();
-    const tx = {
-        id: txId,
-        grupo_id: String(ctx.chat.id),
-        estado: 'swap_iniciado',
-        lang: lang,
-        code: code,
-        tipo: 'swap',
-        fee: 1.00
-    };
-    await saveTx(tx);
-    const msg = t(lang, 'swapInstructions').replace('CODE', code);
-    ctx.replyWithMarkdown(msg + '\n\n_TX: ' + txId + '_');
-    notifyAdmin(bot, '🔄 Nuevo swap iniciado\nTX: ' + txId + '\nGrupo: ' + ctx.chat.id);
-});
-
-// --- PROCESAR MENSAJES DE TEXTO EN GRUPOS (precios) ---
-bot.on('text', async (ctx) => {
-    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return;
-    const text = ctx.message.text;
-    const chatId = String(ctx.chat.id);
-    const userId = String(ctx.from.id);
+    const amount = parseFloat(text.replace(',', '.'));
+    if (isNaN(amount) || amount <= 0) return next();
 
     const { data: txs } = await supabase
         .from('transacciones')
@@ -270,21 +210,18 @@ bot.on('text', async (ctx) => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-    if (!txs || txs.length === 0) return;
+    if (!txs || txs.length === 0) return next();
     const tx = txs[0];
-    const lang = tx.lang || 'en';
-
-    const amount = parseFloat(text.replace(',', '.'));
-    if (isNaN(amount) || amount <= 0) return;
+    const txLang = tx.lang || 'en';
 
     if (tx.estado === 'esperando_vendedor_precio') {
-        await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: userId, estado: 'esperando_comprador_precio' });
-        ctx.replyWithMarkdown(t(lang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
+        await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: String(ctx.from.id), estado: 'esperando_comprador_precio' });
+        ctx.replyWithMarkdown(t(txLang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
 
     } else if (tx.estado === 'esperando_comprador_precio') {
         const sellerAmount = tx.vendedor_precio;
         if (amount !== sellerAmount) {
-            const msg = t(lang, 'priceMismatch')
+            const msg = t(txLang, 'priceMismatch')
                 .replace('$SELLER', '$' + sellerAmount.toFixed(2))
                 .replace('$BUYER', '$' + amount.toFixed(2));
             return ctx.replyWithMarkdown(msg);
@@ -292,22 +229,21 @@ bot.on('text', async (ctx) => {
 
         const fee = calcFee(amount);
         const total = parseFloat((amount + fee).toFixed(2));
-        await saveTx({ ...tx, comprador_precio: amount, comprador_id: userId, fee, total, estado: 'esperando_quien_paga' });
+        await saveTx({ ...tx, comprador_precio: amount, comprador_id: String(ctx.from.id), fee, total, estado: 'esperando_quien_paga' });
 
-        const matchMsg = t(lang, 'priceMatch')
+        const matchMsg = t(txLang, 'priceMatch')
             .replace('$AMOUNT', '$' + amount.toFixed(2))
             .replace('$FEE', '$' + fee.toFixed(2))
             .replace('$TOTAL', '$' + total.toFixed(2))
             .replace('CODE', tx.code);
 
         ctx.replyWithMarkdown(matchMsg, Markup.inlineKeyboard([
-            [Markup.button.callback(t(lang, 'buyerPays'), 'fee_buyer_' + tx.id)],
-            [Markup.button.callback(t(lang, 'sellerPays'), 'fee_seller_' + tx.id)],
-            [Markup.button.callback(t(lang, 'splitPays'), 'fee_split_' + tx.id)]
+            [Markup.button.callback(t(txLang, 'buyerPays'), 'fee_buyer_' + tx.id)],
+            [Markup.button.callback(t(txLang, 'sellerPays'), 'fee_seller_' + tx.id)],
+            [Markup.button.callback(t(txLang, 'splitPays'), 'fee_split_' + tx.id)]
         ]));
     }
 });
-
 // --- QUIÉN PAGA LA FEE ---
 bot.action(/fee_(buyer|seller|split)_(.+)/, async (ctx) => {
     await ctx.answerCbQuery();
