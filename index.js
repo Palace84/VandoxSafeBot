@@ -1,110 +1,378 @@
 const { Telegraf, Markup } = require('telegraf');
+const { createClient } = require('@supabase/supabase-js');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const ADMIN_ID = process.env.ADMIN_ID;
 
-// Base de datos temporal para las transacciones del grupo
-let transaccionesGrupo = {};
+const WALLET_TON = 'UQAfvihg2RIt_PFSTfBOYLYC-8ABrUd1IbAxUItFAOVmc8lH';
 
-// --- FUNCIÓN DE BIENVENIDA ---
-const bienvenidaVandox = (ctx) => {
-    return ctx.replyWithMarkdown(
-        `🛡️ *Vandox Safe: Bóveda de Seguridad*\n\n` +
-        `Detecto una operación en curso. Soy vuestro notario digital para asegurar que el intercambio sea 100% seguro.\n\n` +
-        `¿Qué tipo de trato vais a realizar?`,
+// --- HELPERS ---
+function calcFee(amount) {
+    return amount < 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
+}
+
+function genCode() {
+    return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+function genTxId() {
+    return 'VDX-2026-' + Math.floor(1000 + Math.random() * 9000);
+}
+
+function getLang(ctx) {
+    const lang = ctx.from?.language_code;
+    return lang && lang.startsWith('es') ? 'es' : 'en';
+}
+
+function t(lang, key) {
+    const texts = {
+        en: {
+            detected: '🛡️ *Vandox Safe* — I detected a deal in progress.\nWant me to secure it so both sides are protected?',
+            startBtn: '🔒 Secure this deal',
+            tarifasBtn: '📊 View pricing',
+            welcome: '🛡️ *Vandox Safe*\n\nWhat type of deal?',
+            saleBtn: '💵 Sale (money for product)',
+            swapBtn: '🔄 Swap (product for product)',
+            askSellerPrice: '✍️ *Seller:* What is the agreed price in USD? (numbers only)',
+            askBuyerPrice: '✍️ *Buyer:* What price did you agree to pay in USD? (numbers only)',
+            priceMismatch: '❌ *Prices don\'t match.*\nSeller declared: *$SELLER*\nBuyer declared: *$BUYER*\n\nOne of you must correct their amount.',
+            priceMatch: '✅ *Prices match at $AMOUNT*\n\n📦 Deal: $AMOUNT\n🛡️ Vandox fee: $FEE\n💳 *Total to deposit: $TOTAL*\n\n🔑 Verification code: *CODE*\n\nBoth parties must see the same code.',
+            whoPaysFee: 'Who pays the Vandox fee?',
+            buyerPays: '💳 Buyer pays',
+            sellerPays: '💳 Seller pays',
+            splitPays: '50/50 split',
+            payNow: '✅ Proceed to payment',
+            payInstructions: '🏦 *Secure Vault — Vandox Safe*\n\n💳 Send exactly *$TOTAL USDT* to:\n\n`WALLET`\n\n📡 Network: *TON only*\n⚠️ Wrong network = lost funds\n\n🔑 Your deal code: *CODE*',
+            paidBtn: '✅ I have sent the payment',
+            paidNotif: '📨 Payment reported. Verifying on blockchain...',
+            adminNotif: '🔔 *New payment reported*\n\nTX: *TXID*\nAmount: *$TOTAL*\nCode: *CODE*\nGroup: CHATID',
+            releaseBtn: '✅ Release funds to seller',
+            disputeBtn: '⚠️ Open dispute',
+            released: '🎉 *Deal complete!*\nFunds released to seller.\nTX: *TXID*',
+            disputed: '⚠️ *Dispute opened.*\nVandox will review the evidence. Both parties will be contacted.',
+            tarifas: '📊 *Vandox Pricing:*\n\n• Sales under $50: *$1.00 flat*\n• Sales $50+: *1.5%*\n• Swaps: *$1.00 flat*\n\n_Cheapest escrow service available._',
+            invalidAmount: '❌ Please enter a valid number (e.g. 150)',
+            cancelled: '❌ Deal cancelled.',
+            swapInstructions: '🔄 *Swap — Vandox Safe*\n\nBoth parties upload their digital products. Exchange happens simultaneously.\n\nFlat fee: *$1.00*\n🔑 Code: *CODE*',
+            sellerUpload: '📤 *Seller:* Upload your digital product here (file, link, or credentials).',
+            buyerConfirm: '📥 *Buyer:* Product received from seller. Confirm to complete the deal.',
+            confirmBtn: '✅ Confirm receipt',
+        },
+        es: {
+            detected: '🛡️ *Vandox Safe* — Detecto un trato en curso.\n¿Quieres que lo custodie para que ambas partes estén protegidas?',
+            startBtn: '🔒 Custodiar este trato',
+            tarifasBtn: '📊 Ver tarifas',
+            welcome: '🛡️ *Vandox Safe*\n\n¿Qué tipo de trato?',
+            saleBtn: '💵 Venta (dinero por producto)',
+            swapBtn: '🔄 Trueque (producto por producto)',
+            askSellerPrice: '✍️ *Vendedor:* ¿Cuál es el precio acordado en USD? (solo números)',
+            askBuyerPrice: '✍️ *Comprador:* ¿Cuánto acordaste pagar en USD? (solo números)',
+            priceMismatch: '❌ *Los precios no coinciden.*\nVendedor declaró: *$SELLER*\nComprador declaró: *$BUYER*\n\nUno de los dos debe corregir su importe.',
+            priceMatch: '✅ *Precios coinciden: $AMOUNT*\n\n📦 Trato: $AMOUNT\n🛡️ Tarifa Vandox: $FEE\n💳 *Total a depositar: $TOTAL*\n\n🔑 Código de verificación: *CODE*\n\nAmbas partes deben ver el mismo código.',
+            whoPaysFee: '¿Quién paga la tarifa Vandox?',
+            buyerPays: '💳 El comprador paga',
+            sellerPays: '💳 El vendedor paga',
+            splitPays: '50/50 entre ambos',
+            payNow: '✅ Proceder al pago',
+            payInstructions: '🏦 *Bóveda Segura — Vandox Safe*\n\n💳 Envía exactamente *$TOTAL USDT* a:\n\n`WALLET`\n\n📡 Red: *TON únicamente*\n⚠️ Red incorrecta = fondos perdidos\n\n🔑 Código de tu trato: *CODE*',
+            paidBtn: '✅ Ya he enviado el pago',
+            paidNotif: '📨 Pago reportado. Verificando en blockchain...',
+            adminNotif: '🔔 *Nuevo pago reportado*\n\nTX: *TXID*\nImporte: *$TOTAL*\nCódigo: *CODE*\nGrupo: CHATID',
+            releaseBtn: '✅ Liberar fondos al vendedor',
+            disputeBtn: '⚠️ Abrir disputa',
+            released: '🎉 *¡Trato completado!*\nFondos liberados al vendedor.\nTX: *TXID*',
+            disputed: '⚠️ *Disputa abierta.*\nVandox revisará la evidencia y contactará a ambas partes.',
+            tarifas: '📊 *Tarifas Vandox:*\n\n• Ventas menores de $50: *$1.00 fijo*\n• Ventas de $50+: *1.5%*\n• Trueques: *$1.00 fijo*\n\n_El servicio de custodia más barato del mercado._',
+            invalidAmount: '❌ Por favor escribe un número válido (ej: 150)',
+            cancelled: '❌ Trato cancelado.',
+            swapInstructions: '🔄 *Trueque — Vandox Safe*\n\nAmbas partes suben sus productos digitales. El intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *CODE*',
+            sellerUpload: '📤 *Vendedor:* Sube tu producto digital aquí (archivo, enlace o credenciales).',
+            buyerConfirm: '📥 *Comprador:* Producto recibido del vendedor. Confirma para completar el trato.',
+            confirmBtn: '✅ Confirmar recepción',
+        }
+    };
+    return texts[lang][key] || texts['en'][key] || key;
+}
+
+// --- GUARDAR Y LEER TRANSACCIONES ---
+async function saveTx(tx) {
+    await supabase.from('transacciones').upsert(tx);
+}
+
+async function getTx(id) {
+    const { data } = await supabase.from('transacciones').select('*').eq('id', id).single();
+    return data;
+}
+
+// --- NOTIFICAR AL ADMIN ---
+async function notifyAdmin(bot, msg) {
+    try {
+        await bot.telegram.sendMessage(ADMIN_ID, msg, { parse_mode: 'Markdown' });
+    } catch (e) {
+        console.log('Admin notify error:', e.message);
+    }
+}
+
+// --- PALABRAS CLAVE ---
+const triggers = [
+    'vendo', 'vender', 'venta', 'compro', 'comprar', 'precio', 'pago', 'pagar',
+    'deal', 'sell', 'buy', 'price', 'payment', 'swap', 'trueque', 'intercambio',
+    'cuanto', 'cuánto', 'ofrezco', 'busco', 'interesado', 'acuerdo', 'trato'
+];
+
+// --- COMANDO START EN PRIVADO ---
+bot.command('start', (ctx) => {
+    if (ctx.chat.type !== 'private') return;
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(
+        t(lang, 'welcome'),
         Markup.inlineKeyboard([
-            [Markup.button.callback('💰 Iniciar Venta (Escrow)', 'nuevo_escrow')],
-            [Markup.button.callback('🤝 Iniciar Trueque (Swap)', 'nuevo_swap')],
-            [Markup.button.callback('📊 Ver Tarifas', 'ver_tarifas')]
+            [Markup.button.callback(t(lang, 'saleBtn'), 'private_sale')],
+            [Markup.button.callback(t(lang, 'swapBtn'), 'private_swap')],
+            [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
         ])
     );
-};
+});
 
-// --- LÓGICA DE MENSAJES ---
-bot.on('message', (ctx) => {
-    const text = ctx.message.text;
+// --- COMANDO ADMIN: LIBERAR FONDOS ---
+bot.command('liberar', async (ctx) => {
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const parts = ctx.message.text.split(' ');
+    const txId = parts[1];
+    if (!txId) return ctx.reply('Uso: /liberar VDX-2026-XXXX');
+
+    const tx = await getTx(txId);
+    if (!tx) return ctx.reply('Transacción no encontrada: ' + txId);
+
+    await saveTx({ ...tx, estado: 'liberado' });
+
+    const lang = tx.lang || 'en';
+    const msg = t(lang, 'released').replace('TXID', txId);
+
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
+
+    ctx.reply('✅ Fondos liberados para TX: ' + txId);
+});
+
+// --- COMANDO ADMIN: DISPUTAR ---
+bot.command('disputar', async (ctx) => {
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const parts = ctx.message.text.split(' ');
+    const txId = parts[1];
+    if (!txId) return ctx.reply('Uso: /disputar VDX-2026-XXXX');
+
+    const tx = await getTx(txId);
+    if (!tx) return ctx.reply('Transacción no encontrada: ' + txId);
+
+    await saveTx({ ...tx, estado: 'disputa' });
+
+    const lang = tx.lang || 'en';
+    const msg = t(lang, 'disputed');
+
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+
+    ctx.reply('⚠️ Disputa activada para TX: ' + txId);
+});
+
+// --- ESCUCHA EN GRUPOS ---
+bot.on('message', async (ctx) => {
+    const text = ctx.message?.text;
     const chatId = ctx.chat.id;
+    const lang = getLang(ctx);
 
     if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
-        // Salto automático con palabras clave
-        const disparadores = ['hola', 'vendo', 'compro', 'precio', 'pago', 'deal', 'swap'];
-        if (text && disparadores.some(p => text.toLowerCase().includes(p))) {
-            return bienvenidaVandox(ctx);
-        }
+        if (!text) return;
 
-        // Procesar el precio cuando el vendedor lo escribe
-        if (transaccionesGrupo[chatId]?.esperandoPrecio) {
-            const monto = parseFloat(text.replace(',', '.'));
-            if (isNaN(monto)) return ctx.reply("❌ Por favor, escribe solo el número del precio (ej: 50).");
+        const lower = text.toLowerCase();
+        const isTrigger = triggers.some(t => lower.includes(t));
 
-            // Cálculo: $2.00 mínimo o 3% si es mayor a $65
-            let comision = monto < 65 ? 2.00 : monto * 0.03;
-            const total = monto + comision;
-
-            transaccionesGrupo[chatId] = { monto, comision, etapa: 'confirmacion' };
-
+        if (isTrigger) {
             return ctx.replyWithMarkdown(
-                `📦 *Recibo de Transacción Vandox*\n\n` +
-                `💵 **Monto del producto:** $${monto.toFixed(2)}\n` +
-                `🛡️ **Comisión de Seguridad:** $${comision.toFixed(2)}\n` +
-                `💳 **Total a depositar:** $${total.toFixed(2)}\n\n` +
-                `⚠️ *Atención Comprador:* ¿Aceptas estas condiciones para proceder al pago seguro en custodia?`,
+                t(lang, 'detected'),
                 Markup.inlineKeyboard([
-                    [Markup.button.callback('✅ Aceptar y Pagar', 'aceptar_pago')],
-                    [Markup.button.callback('❌ Cancelar', 'cancelar')]
+                    [Markup.button.callback(t(lang, 'startBtn'), 'iniciar_trato_' + lang)],
+                    [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
                 ])
             );
         }
     }
-
-    // Menú privado
-    if (ctx.chat.type === 'private' && text === '/start') {
-        ctx.replyWithMarkdown('🛡️ *Vandox Safe Bot*\nSelecciona tu idioma:', Markup.inlineKeyboard([
-            [Markup.button.callback('Español 🇪🇸', 'lang_es'), Markup.button.callback('English 🇺🇸', 'lang_en')]
-        ]));
-    }
 });
 
-// --- ACCIONES DE BOTONES ---
-
-bot.action('nuevo_escrow', (ctx) => {
-    transaccionesGrupo[ctx.chat.id] = { esperandoPrecio: true };
-    ctx.reply('✍️ *Vendedor:* Por favor, escribe el precio del producto en USD:');
-});
-
-bot.action('aceptar_pago', (ctx) => {
+// --- BOTONES DE GRUPO ---
+bot.action(/iniciar_trato_(.+)/, async (ctx) => {
+    const lang = ctx.match[1] || getLang(ctx);
+    await ctx.answerCbQuery();
     ctx.replyWithMarkdown(
-        `🏦 *Pasarela de Pago Segura Vandox*\n\n` +
-        `Para iniciar la custodia, realiza el depósito en la siguiente dirección:\n\n` +
-        `💎 *OPCIÓN RECOMENDADA:* (Casi sin comisiones)\n` +
-        `📍 Red: **USDT (TON / Telegram)**\n` +
-        `💳 Billetera: \`UQAfvihg2RIt_PFSTfBOYLYC-8ABrUd1IbAxUItFAOVmc8lH\`\n\n` +
-        `🌐 *OPCIÓN ALTERNATIVA:*\n` +
-        `📍 Red: **USDT (TRC-20 / Tron)**\n` +
-        `💳 Billetera: \`TU_BILLETERA_TRC20_AQUI\`\n\n` +
-        `Una vez realizado el envío, pulsa el botón de abajo para verificar.`,
+        t(lang, 'welcome'),
         Markup.inlineKeyboard([
-            [Markup.button.callback('✅ Ya he realizado el pago', 'pago_enviado')]
+            [Markup.button.callback(t(lang, 'saleBtn'), 'start_sale_' + lang)],
+            [Markup.button.callback(t(lang, 'swapBtn'), 'start_swap_' + lang)],
+            [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
         ])
     );
 });
 
+// --- INICIAR VENTA ---
+bot.action(/start_sale_(.+)/, async (ctx) => {
+    const lang = ctx.match[1] || getLang(ctx);
+    await ctx.answerCbQuery();
+    const txId = genTxId();
+    const code = genCode();
+    const tx = {
+        id: txId,
+        grupo_id: String(ctx.chat.id),
+        estado: 'esperando_vendedor_precio',
+        lang: lang,
+        code: code,
+        tipo: 'venta'
+    };
+    await saveTx(tx);
+    ctx.replyWithMarkdown(t(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_');
+});
+
+// --- INICIAR SWAP ---
+bot.action(/start_swap_(.+)/, async (ctx) => {
+    const lang = ctx.match[1] || getLang(ctx);
+    await ctx.answerCbQuery();
+    const txId = genTxId();
+    const code = genCode();
+    const tx = {
+        id: txId,
+        grupo_id: String(ctx.chat.id),
+        estado: 'swap_iniciado',
+        lang: lang,
+        code: code,
+        tipo: 'swap',
+        fee: 1.00
+    };
+    await saveTx(tx);
+    const msg = t(lang, 'swapInstructions').replace('CODE', code);
+    ctx.replyWithMarkdown(msg + '\n\n_TX: ' + txId + '_');
+    notifyAdmin(bot, '🔄 Nuevo swap iniciado\nTX: ' + txId + '\nGrupo: ' + ctx.chat.id);
+});
+
+// --- PROCESAR MENSAJES DE TEXTO EN GRUPOS (precios) ---
+bot.on('text', async (ctx) => {
+    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return;
+    const text = ctx.message.text;
+    const chatId = String(ctx.chat.id);
+    const userId = String(ctx.from.id);
+
+    const { data: txs } = await supabase
+        .from('transacciones')
+        .select('*')
+        .eq('grupo_id', chatId)
+        .in('estado', ['esperando_vendedor_precio', 'esperando_comprador_precio'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+    if (!txs || txs.length === 0) return;
+    const tx = txs[0];
+    const lang = tx.lang || 'en';
+
+    const amount = parseFloat(text.replace(',', '.'));
+    if (isNaN(amount) || amount <= 0) return;
+
+    if (tx.estado === 'esperando_vendedor_precio') {
+        await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: userId, estado: 'esperando_comprador_precio' });
+        ctx.replyWithMarkdown(t(lang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
+
+    } else if (tx.estado === 'esperando_comprador_precio') {
+        const sellerAmount = tx.vendedor_precio;
+        if (amount !== sellerAmount) {
+            const msg = t(lang, 'priceMismatch')
+                .replace('$SELLER', '$' + sellerAmount.toFixed(2))
+                .replace('$BUYER', '$' + amount.toFixed(2));
+            return ctx.replyWithMarkdown(msg);
+        }
+
+        const fee = calcFee(amount);
+        const total = parseFloat((amount + fee).toFixed(2));
+        await saveTx({ ...tx, comprador_precio: amount, comprador_id: userId, fee, total, estado: 'esperando_quien_paga' });
+
+        const matchMsg = t(lang, 'priceMatch')
+            .replace('$AMOUNT', '$' + amount.toFixed(2))
+            .replace('$FEE', '$' + fee.toFixed(2))
+            .replace('$TOTAL', '$' + total.toFixed(2))
+            .replace('CODE', tx.code);
+
+        ctx.replyWithMarkdown(matchMsg, Markup.inlineKeyboard([
+            [Markup.button.callback(t(lang, 'buyerPays'), 'fee_buyer_' + tx.id)],
+            [Markup.button.callback(t(lang, 'sellerPays'), 'fee_seller_' + tx.id)],
+            [Markup.button.callback(t(lang, 'splitPays'), 'fee_split_' + tx.id)]
+        ]));
+    }
+});
+
+// --- QUIÉN PAGA LA FEE ---
+bot.action(/fee_(buyer|seller|split)_(.+)/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const who = ctx.match[1];
+    const txId = ctx.match[2];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    const lang = tx.lang || 'en';
+
+    let total = tx.comprador_precio;
+    if (who === 'buyer') total = parseFloat((tx.comprador_precio + tx.fee).toFixed(2));
+    else if (who === 'split') total = parseFloat((tx.comprador_precio + tx.fee / 2).toFixed(2));
+
+    await saveTx({ ...tx, quien_paga_fee: who, total_depositar: total, estado: 'esperando_pago' });
+
+    const msg = t(lang, 'payInstructions')
+        .replace('$TOTAL', '$' + total.toFixed(2))
+        .replace('WALLET', WALLET_TON)
+        .replace('CODE', tx.code);
+
+    ctx.replyWithMarkdown(msg, Markup.inlineKeyboard([
+        [Markup.button.callback(t(lang, 'paidBtn'), 'pago_enviado_' + txId)]
+    ]));
+});
+
+// --- PAGO ENVIADO ---
+bot.action(/pago_enviado_(.+)/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    const lang = tx.lang || 'en';
+
+    await saveTx({ ...tx, estado: 'verificando_pago' });
+    ctx.replyWithMarkdown(t(lang, 'paidNotif'));
+
+    const adminMsg = t(lang, 'adminNotif')
+        .replace('TXID', txId)
+        .replace('$TOTAL', '$' + (tx.total_depositar || tx.total))
+        .replace('CODE', tx.code)
+        .replace('CHATID', tx.grupo_id);
+
+    await notifyAdmin(bot, adminMsg + '\n\n✅ /liberar ' + txId + '\n⚠️ /disputar ' + txId);
+});
+
+// --- TARIFAS ---
 bot.action('ver_tarifas', (ctx) => {
-    ctx.replyWithMarkdown(
-        `📊 *Tarifas de Protección Vandox:*\n\n` +
-        `• Ventas menores a $65: **$2.00 fijos**\n` +
-        `• Ventas mayores a $65: **3% del total**\n` +
-        `• Trueques (Swap): **$2.00 fijos**\n\n` +
-        `_Usar la red TON te ahorra $1.00 de comisión de red extra._`
-    );
+    ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(t(lang, 'tarifas'));
 });
 
-bot.action('pago_enviado', (ctx) => {
-    ctx.reply("📨 *Aviso recibido.* Estamos confirmando el depósito en la red. En unos minutos notificaremos al vendedor para que entregue el producto. 🛡️");
+// --- ACCIONES PRIVADAS ---
+bot.action('private_sale', (ctx) => {
+    ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(t(lang, 'askSellerPrice'));
 });
 
-bot.action('cancelar', (ctx) => {
-    delete transaccionesGrupo[ctx.chat.id];
-    ctx.reply("❌ Operación cancelada.");
+bot.action('private_swap', (ctx) => {
+    ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(t(lang, 'swapInstructions').replace('CODE', genCode()));
 });
 
 bot.launch();
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
