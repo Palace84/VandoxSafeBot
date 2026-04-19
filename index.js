@@ -4,10 +4,8 @@ const { createClient } = require('@supabase/supabase-js');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ADMIN_ID = process.env.ADMIN_ID;
-
 const WALLET_TON = 'UQAfvihg2RIt_PFSTfBOYLYC-8ABrUd1IbAxUItFAOVmc8lH';
 
-// --- HELPERS ---
 function calcFee(amount) {
     return amount < 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
 }
@@ -17,7 +15,7 @@ function genCode() {
 }
 
 function genTxId() {
-    return 'VDX-2026-' + Math.floor(1000 + Math.random() * 9000);
+    return 'VDX-' + Math.floor(1000 + Math.random() * 9000);
 }
 
 function getLang(ctx) {
@@ -25,79 +23,75 @@ function getLang(ctx) {
     return lang && lang.startsWith('es') ? 'es' : 'en';
 }
 
-function t(lang, key) {
-    const texts = {
+function txt(lang, key, vars) {
+    const T = {
         en: {
-            detected: '🛡️ *Vandox Safe* — I detected a deal in progress.\nWant me to secure it so both sides are protected?',
+            detected: '🛡️ *Vandox Safe* — Deal detected.\nWant me to secure it so both sides are protected?',
             startBtn: '🔒 Secure this deal',
             tarifasBtn: '📊 View pricing',
             welcome: '🛡️ *Vandox Safe*\n\nWhat type of deal?',
             saleBtn: '💵 Sale (money for product)',
             swapBtn: '🔄 Swap (product for product)',
-            askSellerPrice: '✍️ *Seller:* What is the agreed price in USD? (numbers only)',
-            askBuyerPrice: '✍️ *Buyer:* What price did you agree to pay in USD? (numbers only)',
-            priceMismatch: '❌ *Prices don\'t match.*\nSeller declared: *$SELLER*\nBuyer declared: *$BUYER*\n\nOne of you must correct their amount.',
-            priceMatch: '✅ *Prices match at $AMOUNT*\n\n📦 Deal: $AMOUNT\n🛡️ Vandox fee: $FEE\n💳 *Total to deposit: $TOTAL*\n\n🔑 Verification code: *CODE*\n\nBoth parties must see the same code.',
+            askSellerPrice: '✍️ *Seller:* What is the agreed price in USD?\n_(numbers only, e.g. 150)_',
+            askBuyerPrice: '✍️ *Buyer:* What price did you agree to pay in USD?\n_(numbers only, e.g. 150)_',
+            priceMismatch: '❌ *Prices don\'t match.*\nSeller: *${{seller}}* — Buyer: *${{buyer}}*\n\nOne must correct their amount.',
+            priceMatch: '✅ *Prices match — ${{amount}}*\n\n📦 Deal: ${{amount}}\n🛡️ Fee: ${{fee}}\n💳 *Total to deposit: ${{total}}*\n\n🔑 Verification code: *{{code}}*\n_Both parties must see the same code._',
             whoPaysFee: 'Who pays the Vandox fee?',
-            buyerPays: '💳 Buyer pays',
-            sellerPays: '💳 Seller pays',
+            buyerPays: '💳 Buyer pays fee',
+            sellerPays: '💳 Seller pays fee',
             splitPays: '50/50 split',
-            payNow: '✅ Proceed to payment',
-            payInstructions: '🏦 *Secure Vault — Vandox Safe*\n\n💳 Send exactly *$TOTAL USDT* to:\n\n`WALLET`\n\n📡 Network: *TON only*\n⚠️ Wrong network = lost funds\n\n🔑 Your deal code: *CODE*',
+            payInstructions: '🏦 *Secure Vault — Vandox Safe*\n\n💳 Send exactly *${{total}} USDT* to:\n\n`{{wallet}}`\n\n📡 Network: *TON only*\n⚠️ Wrong network = lost funds\n\n🔑 Deal code: *{{code}}*\nTX: {{txid}}',
             paidBtn: '✅ I have sent the payment',
-            paidNotif: '📨 Payment reported. Verifying on blockchain...',
-            adminNotif: '🔔 *New payment reported*\n\nTX: *TXID*\nAmount: *$TOTAL*\nCode: *CODE*\nGroup: CHATID',
-            releaseBtn: '✅ Release funds to seller',
-            disputeBtn: '⚠️ Open dispute',
-            released: '🎉 *Deal complete!*\nFunds released to seller.\nTX: *TXID*',
-            disputed: '⚠️ *Dispute opened.*\nVandox will review the evidence. Both parties will be contacted.',
-            tarifas: '📊 *Vandox Pricing:*\n\n• Sales under $50: *$1.00 flat*\n• Sales $50+: *1.5%*\n• Swaps: *$1.00 flat*\n\n_Cheapest escrow service available._',
-            invalidAmount: '❌ Please enter a valid number (e.g. 150)',
+            paidNotif: '📨 Payment reported. Verifying on blockchain...\n\nVandox will notify both parties shortly.',
+            adminNotif: '🔔 *New payment reported*\n\nTX: {{txid}}\nAmount: ${{total}}\nCode: {{code}}\nGroup: {{group}}',
+            released: '🎉 *Deal complete!*\nFunds released to seller.\nTX: {{txid}}',
+            disputed: '⚠️ *Dispute opened.*\nVandox will review the evidence and contact both parties.',
+            tarifas: '📊 *Vandox Pricing:*\n\n• Sales under $50: *$1.00 flat*\n• Sales $50+: *1.5%*\n• Swaps: *$1.00 flat*\n\n_Cheapest escrow in the market._',
             cancelled: '❌ Deal cancelled.',
-            swapInstructions: '🔄 *Swap — Vandox Safe*\n\nBoth parties upload their digital products. Exchange happens simultaneously.\n\nFlat fee: *$1.00*\n🔑 Code: *CODE*',
-            sellerUpload: '📤 *Seller:* Upload your digital product here (file, link, or credentials).',
-            buyerConfirm: '📥 *Buyer:* Product received from seller. Confirm to complete the deal.',
-            confirmBtn: '✅ Confirm receipt',
+            swapReady: '🔄 *Swap initiated*\n\nBoth parties upload their digital products here.\nExchange happens simultaneously when both are ready.\n\nFlat fee: *$1.00*\n🔑 Code: *{{code}}*\nTX: {{txid}}',
+            sellerUpload: '📤 *Seller:* Upload your digital product now (file, link, or credentials).',
+            buyerConfirm: '📥 *Buyer:* Product received. Confirm to release funds.',
+            confirmBtn: '✅ Confirm receipt & release',
+            cancelBtn: '❌ Cancel deal',
         },
         es: {
-            detected: '🛡️ *Vandox Safe* — Detecto un trato en curso.\n¿Quieres que lo custodie para que ambas partes estén protegidas?',
+            detected: '🛡️ *Vandox Safe* — Trato detectado.\n¿Quieres que lo custodie para proteger a ambas partes?',
             startBtn: '🔒 Custodiar este trato',
             tarifasBtn: '📊 Ver tarifas',
             welcome: '🛡️ *Vandox Safe*\n\n¿Qué tipo de trato?',
             saleBtn: '💵 Venta (dinero por producto)',
             swapBtn: '🔄 Trueque (producto por producto)',
-            askSellerPrice: '✍️ *Vendedor:* ¿Cuál es el precio acordado en USD? (solo números)',
-            askBuyerPrice: '✍️ *Comprador:* ¿Cuánto acordaste pagar en USD? (solo números)',
-            priceMismatch: '❌ *Los precios no coinciden.*\nVendedor declaró: *$SELLER*\nComprador declaró: *$BUYER*\n\nUno de los dos debe corregir su importe.',
-            priceMatch: '✅ *Precios coinciden: $AMOUNT*\n\n📦 Trato: $AMOUNT\n🛡️ Tarifa Vandox: $FEE\n💳 *Total a depositar: $TOTAL*\n\n🔑 Código de verificación: *CODE*\n\nAmbas partes deben ver el mismo código.',
+            askSellerPrice: '✍️ *Vendedor:* ¿Cuál es el precio acordado en USD?\n_(solo números, ej: 150)_',
+            askBuyerPrice: '✍️ *Comprador:* ¿Cuánto acordaste pagar en USD?\n_(solo números, ej: 150)_',
+            priceMismatch: '❌ *Los precios no coinciden.*\nVendedor: *${{seller}}* — Comprador: *${{buyer}}*\n\nUno debe corregir su importe.',
+            priceMatch: '✅ *Precios coinciden — ${{amount}}*\n\n📦 Trato: ${{amount}}\n🛡️ Tarifa: ${{fee}}\n💳 *Total a depositar: ${{total}}*\n\n🔑 Código de verificación: *{{code}}*\n_Ambas partes deben ver el mismo código._',
             whoPaysFee: '¿Quién paga la tarifa Vandox?',
             buyerPays: '💳 El comprador paga',
             sellerPays: '💳 El vendedor paga',
             splitPays: '50/50 entre ambos',
-            payNow: '✅ Proceder al pago',
-            payInstructions: '🏦 *Bóveda Segura — Vandox Safe*\n\n💳 Envía exactamente *$TOTAL USDT* a:\n\n`WALLET`\n\n📡 Red: *TON únicamente*\n⚠️ Red incorrecta = fondos perdidos\n\n🔑 Código de tu trato: *CODE*',
+            payInstructions: '🏦 *Bóveda Segura — Vandox Safe*\n\n💳 Envía exactamente *${{total}} USDT* a:\n\n`{{wallet}}`\n\n📡 Red: *TON únicamente*\n⚠️ Red incorrecta = fondos perdidos\n\n🔑 Código: *{{code}}*\nTX: {{txid}}',
             paidBtn: '✅ Ya he enviado el pago',
-            paidNotif: '📨 Pago reportado. Verificando en blockchain...',
-            adminNotif: '🔔 *Nuevo pago reportado*\n\nTX: *TXID*\nImporte: *$TOTAL*\nCódigo: *CODE*\nGrupo: CHATID',
-            releaseBtn: '✅ Liberar fondos al vendedor',
-            disputeBtn: '⚠️ Abrir disputa',
-            released: '🎉 *¡Trato completado!*\nFondos liberados al vendedor.\nTX: *TXID*',
+            paidNotif: '📨 Pago reportado. Verificando en blockchain...\n\nVandox notificará a ambas partes en breve.',
+            adminNotif: '🔔 *Nuevo pago reportado*\n\nTX: {{txid}}\nImporte: ${{total}}\nCódigo: {{code}}\nGrupo: {{group}}',
+            released: '🎉 *¡Trato completado!*\nFondos liberados al vendedor.\nTX: {{txid}}',
             disputed: '⚠️ *Disputa abierta.*\nVandox revisará la evidencia y contactará a ambas partes.',
             tarifas: '📊 *Tarifas Vandox:*\n\n• Ventas menores de $50: *$1.00 fijo*\n• Ventas de $50+: *1.5%*\n• Trueques: *$1.00 fijo*\n\n_El servicio de custodia más barato del mercado._',
-            invalidAmount: '❌ Por favor escribe un número válido (ej: 150)',
             cancelled: '❌ Trato cancelado.',
-            swapInstructions: '🔄 *Trueque — Vandox Safe*\n\nAmbas partes suben sus productos digitales. El intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *CODE*',
-            sellerUpload: '📤 *Vendedor:* Sube tu producto digital aquí (archivo, enlace o credenciales).',
-            buyerConfirm: '📥 *Comprador:* Producto recibido del vendedor. Confirma para completar el trato.',
-            confirmBtn: '✅ Confirmar recepción',
+            swapReady: '🔄 *Trueque iniciado*\n\nAmbas partes suben sus productos digitales aquí.\nEl intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *{{code}}*\nTX: {{txid}}',
+            sellerUpload: '📤 *Vendedor:* Sube tu producto digital ahora (archivo, enlace o credenciales).',
+            buyerConfirm: '📥 *Comprador:* Producto recibido. Confirma para liberar los fondos.',
+            confirmBtn: '✅ Confirmar recepción y liberar',
+            cancelBtn: '❌ Cancelar trato',
         }
     };
-    return texts[lang][key] || texts['en'][key] || key;
+    let str = (T[lang] && T[lang][key]) ? T[lang][key] : (T['en'][key] || key);
+    if (vars) Object.keys(vars).forEach(k => { str = str.replace(new RegExp('{{' + k + '}}', 'g'), vars[k]); });
+    return str;
 }
 
-// --- GUARDAR Y LEER TRANSACCIONES ---
 async function saveTx(tx) {
-    await supabase.from('transacciones').upsert(tx);
+    const { error } = await supabase.from('transacciones').upsert(tx);
+    if (error) console.log('Supabase error:', error.message);
 }
 
 async function getTx(id) {
@@ -105,208 +99,235 @@ async function getTx(id) {
     return data;
 }
 
-// --- NOTIFICAR AL ADMIN ---
-async function notifyAdmin(bot, msg) {
+async function notifyAdmin(msg) {
     try {
         await bot.telegram.sendMessage(ADMIN_ID, msg, { parse_mode: 'Markdown' });
     } catch (e) {
-        console.log('Admin notify error:', e.message);
+        console.log('Admin error:', e.message);
     }
 }
 
-// --- PALABRAS CLAVE ---
 const triggers = [
     'vendo', 'vender', 'venta', 'compro', 'comprar', 'precio', 'pago', 'pagar',
     'deal', 'sell', 'buy', 'price', 'payment', 'swap', 'trueque', 'intercambio',
     'cuanto', 'cuánto', 'ofrezco', 'busco', 'interesado', 'acuerdo', 'trato'
 ];
 
-// --- COMANDO START EN PRIVADO ---
+// COMANDO START
 bot.command('start', (ctx) => {
     if (ctx.chat.type !== 'private') return;
     const lang = getLang(ctx);
     ctx.replyWithMarkdown(
-        t(lang, 'welcome'),
+        txt(lang, 'welcome'),
         Markup.inlineKeyboard([
-            [Markup.button.callback(t(lang, 'saleBtn'), 'private_sale')],
-            [Markup.button.callback(t(lang, 'swapBtn'), 'private_swap')],
-            [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
+            [Markup.button.callback(txt(lang, 'saleBtn'), 'sale_private')],
+            [Markup.button.callback(txt(lang, 'swapBtn'), 'swap_private')],
+            [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
         ])
     );
 });
 
-// --- COMANDO ADMIN: LIBERAR FONDOS ---
+// ADMIN: LIBERAR
 bot.command('liberar', async (ctx) => {
     if (String(ctx.from.id) !== String(ADMIN_ID)) return;
-    const parts = ctx.message.text.split(' ');
-    const txId = parts[1];
-    if (!txId) return ctx.reply('Uso: /liberar VDX-2026-XXXX');
-
+    const txId = ctx.message.text.split(' ')[1];
+    if (!txId) return ctx.reply('Uso: /liberar VDX-XXXX');
     const tx = await getTx(txId);
-    if (!tx) return ctx.reply('Transacción no encontrada: ' + txId);
-
+    if (!tx) return ctx.reply('TX no encontrada: ' + txId);
     await saveTx({ ...tx, estado: 'liberado' });
-
     const lang = tx.lang || 'en';
-    const msg = t(lang, 'released').replace('TXID', txId);
-
+    const msg = txt(lang, 'released', { txid: txId });
     if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
     if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
     if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
-
-    ctx.reply('✅ Fondos liberados para TX: ' + txId);
+    ctx.reply('✅ Liberado: ' + txId);
 });
 
-// --- COMANDO ADMIN: DISPUTAR ---
+// ADMIN: DISPUTAR
 bot.command('disputar', async (ctx) => {
     if (String(ctx.from.id) !== String(ADMIN_ID)) return;
-    const parts = ctx.message.text.split(' ');
-    const txId = parts[1];
-    if (!txId) return ctx.reply('Uso: /disputar VDX-2026-XXXX');
-
+    const txId = ctx.message.text.split(' ')[1];
+    if (!txId) return ctx.reply('Uso: /disputar VDX-XXXX');
     const tx = await getTx(txId);
-    if (!tx) return ctx.reply('Transacción no encontrada: ' + txId);
-
+    if (!tx) return ctx.reply('TX no encontrada: ' + txId);
     await saveTx({ ...tx, estado: 'disputa' });
-
     const lang = tx.lang || 'en';
-    const msg = t(lang, 'disputed');
-
+    const msg = txt(lang, 'disputed');
     if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
     if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-
-    ctx.reply('⚠️ Disputa activada para TX: ' + txId);
+    ctx.reply('⚠️ Disputa activada: ' + txId);
 });
 
-bot.on('message', async (ctx, next) => {
+// MENSAJES EN GRUPOS
+bot.on('message', async (ctx) => {
     const text = ctx.message?.text;
     const chatId = String(ctx.chat.id);
     const lang = getLang(ctx);
 
-    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return next();
-    if (!text) return next();
+    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return;
+    if (!text) return;
 
     const lower = text.toLowerCase();
     const isTrigger = triggers.some(t => lower.includes(t));
 
+    const amount = parseFloat(text.replace(',', '.'));
+    const isNumber = !isNaN(amount) && amount > 0 && text.trim().match(/^\d+([.,]\d+)?$/);
+
+    if (isNumber) {
+        const { data: txs } = await supabase
+            .from('transacciones')
+            .select('*')
+            .eq('grupo_id', chatId)
+            .in('estado', ['esperando_vendedor_precio', 'esperando_comprador_precio'])
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (txs && txs.length > 0) {
+            const tx = txs[0];
+            const txLang = tx.lang || 'en';
+
+            if (tx.estado === 'esperando_vendedor_precio') {
+                await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: String(ctx.from.id), estado: 'esperando_comprador_precio' });
+                return ctx.replyWithMarkdown(txt(txLang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
+            }
+
+            if (tx.estado === 'esperando_comprador_precio') {
+                if (amount !== tx.vendedor_precio) {
+                    return ctx.replyWithMarkdown(txt(txLang, 'priceMismatch', {
+                        seller: tx.vendedor_precio.toFixed(2),
+                        buyer: amount.toFixed(2)
+                    }));
+                }
+                const fee = calcFee(amount);
+                const total = parseFloat((amount + fee).toFixed(2));
+                await saveTx({ ...tx, comprador_precio: amount, comprador_id: String(ctx.from.id), fee, total, estado: 'esperando_quien_paga' });
+                return ctx.replyWithMarkdown(
+                    txt(txLang, 'priceMatch', { amount: amount.toFixed(2), fee: fee.toFixed(2), total: total.toFixed(2), code: tx.code }),
+                    Markup.inlineKeyboard([
+                        [Markup.button.callback(txt(txLang, 'buyerPays'), 'fee_buyer_' + tx.id)],
+                        [Markup.button.callback(txt(txLang, 'sellerPays'), 'fee_seller_' + tx.id)],
+                        [Markup.button.callback(txt(txLang, 'splitPays'), 'fee_split_' + tx.id)]
+                    ])
+                );
+            }
+            return;
+        }
+    }
+
     if (isTrigger) {
         return ctx.replyWithMarkdown(
-            t(lang, 'detected'),
+            txt(lang, 'detected'),
             Markup.inlineKeyboard([
-                [Markup.button.callback(t(lang, 'startBtn'), 'iniciar_trato_' + lang)],
-                [Markup.button.callback(t(lang, 'tarifasBtn'), 'ver_tarifas')]
+                [Markup.button.callback(txt(lang, 'startBtn'), 'start_deal')],
+                [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
             ])
         );
     }
-
-    const amount = parseFloat(text.replace(',', '.'));
-    if (isNaN(amount) || amount <= 0) return next();
-
-    const { data: txs } = await supabase
-        .from('transacciones')
-        .select('*')
-        .eq('grupo_id', chatId)
-        .in('estado', ['esperando_vendedor_precio', 'esperando_comprador_precio'])
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-    if (!txs || txs.length === 0) return next();
-    const tx = txs[0];
-    const txLang = tx.lang || 'en';
-
-    if (tx.estado === 'esperando_vendedor_precio') {
-        await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: String(ctx.from.id), estado: 'esperando_comprador_precio' });
-        ctx.replyWithMarkdown(t(txLang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
-
-    } else if (tx.estado === 'esperando_comprador_precio') {
-        const sellerAmount = tx.vendedor_precio;
-        if (amount !== sellerAmount) {
-            const msg = t(txLang, 'priceMismatch')
-                .replace('$SELLER', '$' + sellerAmount.toFixed(2))
-                .replace('$BUYER', '$' + amount.toFixed(2));
-            return ctx.replyWithMarkdown(msg);
-        }
-
-        const fee = calcFee(amount);
-        const total = parseFloat((amount + fee).toFixed(2));
-        await saveTx({ ...tx, comprador_precio: amount, comprador_id: String(ctx.from.id), fee, total, estado: 'esperando_quien_paga' });
-
-        const matchMsg = t(txLang, 'priceMatch')
-            .replace('$AMOUNT', '$' + amount.toFixed(2))
-            .replace('$FEE', '$' + fee.toFixed(2))
-            .replace('$TOTAL', '$' + total.toFixed(2))
-            .replace('CODE', tx.code);
-
-        ctx.replyWithMarkdown(matchMsg, Markup.inlineKeyboard([
-            [Markup.button.callback(t(txLang, 'buyerPays'), 'fee_buyer_' + tx.id)],
-            [Markup.button.callback(t(txLang, 'sellerPays'), 'fee_seller_' + tx.id)],
-            [Markup.button.callback(t(txLang, 'splitPays'), 'fee_split_' + tx.id)]
-        ]));
-    }
 });
-// --- QUIÉN PAGA LA FEE ---
-bot.action(/fee_(buyer|seller|split)_(.+)/, async (ctx) => {
+
+// BOTON: INICIAR TRATO
+bot.action('start_deal', async (ctx) => {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(
+        txt(lang, 'welcome'),
+        Markup.inlineKeyboard([
+            [Markup.button.callback(txt(lang, 'saleBtn'), 'start_sale')],
+            [Markup.button.callback(txt(lang, 'swapBtn'), 'start_swap')],
+            [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
+        ])
+    );
+});
+
+// BOTON: INICIAR VENTA
+bot.action('start_sale', async (ctx) => {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    const txId = genTxId();
+    const code = genCode();
+    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'esperando_vendedor_precio', lang, code, tipo: 'venta' });
+    ctx.replyWithMarkdown(txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_');
+});
+
+// BOTON: INICIAR SWAP
+bot.action('start_swap', async (ctx) => {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    const txId = genTxId();
+    const code = genCode();
+    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'swap_iniciado', lang, code, tipo: 'swap', fee: 1.00 });
+    ctx.replyWithMarkdown(txt(lang, 'swapReady', { code, txid: txId }));
+    await notifyAdmin('🔄 Nuevo swap\nTX: ' + txId + '\nGrupo: ' + ctx.chat.id);
+});
+
+// BOTON: QUIEN PAGA FEE
+bot.action(/^fee_(buyer|seller|split)_(.+)$/, async (ctx) => {
     await ctx.answerCbQuery();
     const who = ctx.match[1];
     const txId = ctx.match[2];
     const tx = await getTx(txId);
     if (!tx) return;
     const lang = tx.lang || 'en';
-
     let total = tx.comprador_precio;
     if (who === 'buyer') total = parseFloat((tx.comprador_precio + tx.fee).toFixed(2));
     else if (who === 'split') total = parseFloat((tx.comprador_precio + tx.fee / 2).toFixed(2));
-
     await saveTx({ ...tx, quien_paga_fee: who, total_depositar: total, estado: 'esperando_pago' });
-
-    const msg = t(lang, 'payInstructions')
-        .replace('$TOTAL', '$' + total.toFixed(2))
-        .replace('WALLET', WALLET_TON)
-        .replace('CODE', tx.code);
-
-    ctx.replyWithMarkdown(msg, Markup.inlineKeyboard([
-        [Markup.button.callback(t(lang, 'paidBtn'), 'pago_enviado_' + txId)]
-    ]));
+    ctx.replyWithMarkdown(
+        txt(lang, 'payInstructions', { total: total.toFixed(2), wallet: WALLET_TON, code: tx.code, txid: txId }),
+        Markup.inlineKeyboard([
+            [Markup.button.callback(txt(lang, 'paidBtn'), 'paid_' + txId)],
+            [Markup.button.callback(txt(lang, 'cancelBtn'), 'cancel_' + txId)]
+        ])
+    );
 });
 
-// --- PAGO ENVIADO ---
-bot.action(/pago_enviado_(.+)/, async (ctx) => {
+// BOTON: PAGO ENVIADO
+bot.action(/^paid_(.+)$/, async (ctx) => {
     await ctx.answerCbQuery();
     const txId = ctx.match[1];
     const tx = await getTx(txId);
     if (!tx) return;
     const lang = tx.lang || 'en';
-
     await saveTx({ ...tx, estado: 'verificando_pago' });
-    ctx.replyWithMarkdown(t(lang, 'paidNotif'));
-
-    const adminMsg = t(lang, 'adminNotif')
-        .replace('TXID', txId)
-        .replace('$TOTAL', '$' + (tx.total_depositar || tx.total))
-        .replace('CODE', tx.code)
-        .replace('CHATID', tx.grupo_id);
-
-    await notifyAdmin(bot, adminMsg + '\n\n✅ /liberar ' + txId + '\n⚠️ /disputar ' + txId);
+    ctx.replyWithMarkdown(txt(lang, 'paidNotif'));
+    await notifyAdmin(txt(lang, 'adminNotif', {
+        txid: txId,
+        total: (tx.total_depositar || tx.total || '?'),
+        code: tx.code,
+        group: tx.grupo_id
+    }) + '\n\n✅ /liberar ' + txId + '\n⚠️ /disputar ' + txId);
 });
 
-// --- TARIFAS ---
-bot.action('ver_tarifas', (ctx) => {
-    ctx.answerCbQuery();
-    const lang = getLang(ctx);
-    ctx.replyWithMarkdown(t(lang, 'tarifas'));
+// BOTON: CANCELAR
+bot.action(/^cancel_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    const lang = tx.lang || 'en';
+    await saveTx({ ...tx, estado: 'cancelado' });
+    ctx.replyWithMarkdown(txt(lang, 'cancelled'));
 });
 
-// --- ACCIONES PRIVADAS ---
-bot.action('private_sale', (ctx) => {
+// BOTON: TARIFAS
+bot.action('tarifas', (ctx) => {
     ctx.answerCbQuery();
     const lang = getLang(ctx);
-    ctx.replyWithMarkdown(t(lang, 'askSellerPrice'));
+    ctx.replyWithMarkdown(txt(lang, 'tarifas'));
 });
 
-bot.action('private_swap', (ctx) => {
+// PRIVADO: VENTA
+bot.action('sale_private', (ctx) => {
     ctx.answerCbQuery();
     const lang = getLang(ctx);
-    ctx.replyWithMarkdown(t(lang, 'swapInstructions').replace('CODE', genCode()));
+    ctx.replyWithMarkdown(txt(lang, 'askSellerPrice'));
+});
+
+// PRIVADO: SWAP
+bot.action('swap_private', (ctx) => {
+    ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(txt(lang, 'swapReady', { code: genCode(), txid: genTxId() }));
 });
 
 bot.launch();
