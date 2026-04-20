@@ -342,55 +342,111 @@ bot.action('swap_private', (ctx) => {
     ctx.replyWithMarkdown(txt(lang, 'swapReady', { code: genCode(), txid: genTxId() }));
 });
 // VERIFICACION AUTOMATICA ON-CHAIN
-async function verificarPagosOnChain() {
+// VERIFICACION AUTOMATICA USDT TON
+async function verificarPagoUSDT(tx) {
     try {
-        const { data: txsPendientes } = await supabase
-            .from('transacciones')
-            .select('*')
-            .eq('estado', 'verificando_pago');
+        const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
+        if (!totalEsperado) return false;
 
-        if (!txsPendientes || txsPendientes.length === 0) return;
-
-        const response = await fetch(
-            'https://toncenter.com/api/v2/getTransactions?address=' + WALLET_TON + '&limit=20&to_lt=0&archival=false',
-            { headers: { 'Content-Type': 'application/json' } }
-        );
+        const url = 'https://toncenter.com/api/v2/getTransactions?address=' + WALLET_TON + '&limit=10';
+        const response = await fetch(url);
         const data = await response.json();
-        if (!data.ok || !data.result) return;
+        if (!data.ok || !data.result) return false;
 
-        const transaccionesChain = data.result;
+        const ahora = Math.floor(Date.now() / 1000);
+        const ventana = 7200;
 
-        for (const tx of txsPendientes) {
-            const totalEsperado = tx.total_depositar || tx.total;
-            if (!totalEsperado) continue;
-
-            const pagoEncontrado = transaccionesChain.find(t => {
-                const mensaje = t.in_msg?.message || '';
-                const valor = parseFloat(t.in_msg?.value || '0') / 1e9;
-                const ahora = Math.floor(Date.now() / 1000);
-                const reciente = (ahora - t.utime) < 3600;
-                return reciente && (
-                    mensaje.includes(tx.code) ||
-                    Math.abs(valor - totalEsperado) < 0.01
-                );
-            });
-
-            if (pagoEncontrado) {
-                await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
-                const lang = tx.lang || 'en';
-                const msg = txt(lang, 'released', { txid: tx.id });
-                if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-                if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-                if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🎉 *Pago verificado automáticamente en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
-                await notifyAdmin('✅ Pago verificado on-chain automáticamente\nTX: ' + tx.id + '\nImporte: $' + totalEsperado);
+        for (const t of data.result) {
+            if ((ahora - t.utime) > ventana) continue;
+            const msg = t.in_msg?.message || '';
+            const valor = parseFloat(t.in_msg?.value || '0') / 1e9;
+            if (msg.includes(tx.code) || Math.abs(valor - totalEsperado) < 0.05) {
+                return true;
             }
         }
+
+        // Buscar jettons USDT
+        const jettonUrl = 'https://toncenter.com/api/v2/getTokenData?address=' + WALLET_TON;
+        const jettonResp = await fetch(jettonUrl);
+        const jettonData = await jettonResp.json();
+
+        if (jettonData.ok) {
+            const transfers = jettonData.result?.jetton_transfers || [];
+            for (const transfer of transfers) {
+                if ((ahora - transfer.utime) > ventana) continue;
+                const amount = parseFloat(transfer.amount || '0') / 1e6;
+                if (Math.abs(amount - totalEsperado) < 0.05) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     } catch (e) {
-        console.log('Error verificacion chain:', e.message);
+        console.log('Error verificacion USDT:', e.message);
+        return false;
     }
 }
 
-setInterval(verificarPagosOnChain, 120000);
+async function iniciarVerificacionActiva(txId) {
+    let intentos = 0;
+    const maxIntentos = 24; // 24 x 30seg = 12 minutos rapido
+    const maxIntentosSlow = 48; // luego 48 x 2min = 96 minutos
+
+    const tx = await getTx(txId);
+    if (!tx) return;
+
+    // Fase rapida: comprobar cada 30 segundos durante 12 minutos
+    const intervalRapido = setInterval(async () => {
+        intentos++;
+        const txActual = await getTx(txId);
+        if (!txActual || txActual.estado !== 'verificando_pago') {
+            clearInterval(intervalRapido);
+            return;
+        }
+
+        const pagado = await verificarPagoUSDT(txActual);
+        if (pagado) {
+            clearInterval(intervalRapido);
+            await liberarAutomatico(txActual);
+            return;
+        }
+
+        if (intentos >= maxIntentos) {
+            clearInterval(intervalRapido);
+            // Fase lenta: comprobar cada 2 minutos durante 2 horas
+            let intentosSlow = 0;
+            const intervalLento = setInterval(async () => {
+                intentosSlow++;
+                const txActual2 = await getTx(txId);
+                if (!txActual2 || txActual2.estado !== 'verificando_pago') {
+                    clearInterval(intervalLento);
+                    return;
+                }
+                const pagado2 = await verificarPagoUSDT(txActual2);
+                if (pagado2) {
+                    clearInterval(intervalLento);
+                    await liberarAutomatico(txActual2);
+                    return;
+                }
+                if (intentosSlow >= maxIntentosSlow) {
+                    clearInterval(intervalLento);
+                    await notifyAdmin('⚠️ Pago no detectado después de 2 horas\nTX: ' + txId + '\nRevisa manualmente.\n\n✅ /liberar ' + txId);
+                }
+            }, 120000);
+        }
+    }, 30000);
+}
+
+async function liberarAutomatico(tx) {
+    await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
+    const lang = tx.lang || 'en';
+    const msg = txt(lang, 'released', { txid: tx.id });
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 *Pago verificado en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
+    await notifyAdmin('✅ *Pago verificado y liberado automáticamente*\nTX: ' + tx.id + '\nImporte: $' + (tx.total_depositar || tx.total));
+}
 bot.launch();
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
