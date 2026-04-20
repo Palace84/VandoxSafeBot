@@ -267,6 +267,7 @@ bot.action(/^paid_(.+)$/, async (ctx) => {
     if (!tx) return;
     const lang = tx.lang || 'en';
     await saveTx({ ...tx, estado: 'verificando_pago' });
+    iniciarVerificacionActiva(txId);
     ctx.replyWithMarkdown(txt(lang, 'paidNotif'));
     const adminMsg = txt(lang, 'adminNotif', {
         txid: txId,
