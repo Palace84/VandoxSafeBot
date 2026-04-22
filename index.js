@@ -458,6 +458,30 @@ async function liberarAutomatico(tx) {
     if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 *Pago verificado en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
     await notifyAdmin('✅ *Pago verificado y liberado automáticamente*\nTX: ' + tx.id + '\nImporte: $' + (tx.total_depositar || tx.total));
 }
+async function liberarConContrato(tx) {
+    try {
+        const key = await mnemonicToPrivateKey(WALLET_MNEMONIC.split(' '));
+        const wallet = WalletContractV4.create({ publicKey: key.publicKey, workchain: 0 });
+        const contract = tonClient.open(wallet);
+        const seqno = await contract.getSeqno();
+        
+        await contract.sendTransfer({
+            secretKey: key.secretKey,
+            seqno,
+            messages: [
+                internal({
+                    to: Address.parse(CONTRACT_ADDRESS),
+                    value: toNano('0.05'),
+                    body: JSON.stringify({ type: 'Release', txId: tx.id })
+                })
+            ]
+        });
+        return true;
+    } catch(e) {
+        console.log('Error contrato:', e.message);
+        return false;
+    }
+}
 bot.launch();
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
