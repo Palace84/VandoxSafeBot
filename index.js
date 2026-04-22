@@ -1,5 +1,15 @@
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
+const { TonClient, WalletContractV4, internal, toNano, Address } = require('@ton/ton');
+const { mnemonicToPrivateKey } = require('@ton/crypto');
+
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+const WALLET_MNEMONIC = process.env.WALLET_MNEMONIC;
+
+const tonClient = new TonClient({
+    endpoint: 'https://testnet.toncenter.com/api/v2/jsonRPC',
+    apiKey: ''
+});
 const { createClient } = require('@supabase/supabase-js');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
