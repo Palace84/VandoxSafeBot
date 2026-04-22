@@ -304,6 +304,7 @@ bot.action(/^admin_liberar_(.+)$/, async (ctx) => {
     const txId = ctx.match[1];
     const tx = await getTx(txId);
     if (!tx) return;
+    await liberarConContrato(tx);
     await saveTx({ ...tx, estado: 'liberado' });
     const lang = tx.lang || 'en';
     const msg = txt(lang, 'released', { txid: txId });
