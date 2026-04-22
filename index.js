@@ -15,7 +15,7 @@ const { createClient } = require('@supabase/supabase-js');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ADMIN_ID = process.env.ADMIN_ID;
-const WALLET_TON = 'UQDcvUumghbxhW7IUIfnKvsVRZ2oQx-tDK6ne8aXO5JT0NXj';
+const WALLET_TON = process.env.CONTRACT_ADDRESS;
 
 function calcFee(amount) {
     return amount <= 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
