@@ -360,39 +360,32 @@ async function verificarPagoUSDT(tx) {
         const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
         if (!totalEsperado) return false;
 
-        const url = 'https://toncenter.com/api/v2/getTransactions?address=' + WALLET_TON + '&limit=10';
-        const response = await fetch(url);
+        const CONTRACT = process.env.CONTRACT_ADDRESS;
+        const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+        
+        const url = 'https://tonapi.io/v2/accounts/' + CONTRACT + '/jettons/' + USDT_MASTER + '/history?limit=20';
+        const response = await fetch(url, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) return false;
         const data = await response.json();
-        if (!data.ok || !data.result) return false;
+        if (!data.events) return false;
 
         const ahora = Math.floor(Date.now() / 1000);
         const ventana = 7200;
 
-        for (const t of data.result) {
-            if ((ahora - t.utime) > ventana) continue;
-            const msg = t.in_msg?.message || '';
-            const valor = parseFloat(t.in_msg?.value || '0') / 1e9;
-            if (msg.includes(tx.code) || Math.abs(valor - totalEsperado) < 0.05) {
-                return true;
-            }
-        }
-
-        // Buscar jettons USDT
-        const jettonUrl = 'https://toncenter.com/api/v2/getTokenData?address=' + WALLET_TON;
-        const jettonResp = await fetch(jettonUrl);
-        const jettonData = await jettonResp.json();
-
-        if (jettonData.ok) {
-            const transfers = jettonData.result?.jetton_transfers || [];
-            for (const transfer of transfers) {
-                if ((ahora - transfer.utime) > ventana) continue;
-                const amount = parseFloat(transfer.amount || '0') / 1e6;
-                if (Math.abs(amount - totalEsperado) < 0.05) {
+        for (const event of data.events) {
+            if ((ahora - event.timestamp) > ventana) continue;
+            for (const action of event.actions) {
+                if (action.type !== 'JettonTransfer') continue;
+                const amount = parseFloat(action.JettonTransfer?.amount || '0') / 1e6;
+                const comment = action.JettonTransfer?.comment || '';
+                if (Math.abs(amount - totalEsperado) < 0.05 || comment.includes(tx.code)) {
                     return true;
                 }
             }
         }
-
         return false;
     } catch (e) {
         console.log('Error verificacion USDT:', e.message);
