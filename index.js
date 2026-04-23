@@ -7,7 +7,7 @@ const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 const WALLET_MNEMONIC = process.env.WALLET_MNEMONIC;
 
 const tonClient = new TonClient({
-    endpoint: 'https://testnet.toncenter.com/api/v2/jsonRPC',
+    endpoint: 'https://toncenter.com/api/v2/jsonRPC',
     apiKey: ''
 });
 const { createClient } = require('@supabase/supabase-js');
