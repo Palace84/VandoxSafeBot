@@ -1,6 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
-const { TonClient, WalletContractV4, internal, toNano, Address } = require('@ton/ton');
+const { TonClient, WalletContractV4, internal, toNano, Address, beginCell } = require('@ton/ton');
 const { mnemonicToPrivateKey } = require('@ton/crypto');
 
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
@@ -460,17 +460,25 @@ async function liberarConContrato(tx) {
     try {
         const key = await mnemonicToPrivateKey(WALLET_MNEMONIC.split(' '));
         const wallet = WalletContractV4.create({ publicKey: key.publicKey, workchain: 0 });
-        const contract = tonClient.open(wallet);
-        const seqno = await contract.getSeqno();
-        
-        await contract.sendTransfer({
+        const opened = tonClient.open(wallet);
+        const seqno = await opened.getSeqno();
+
+        const txIdNum = parseInt(tx.id.replace('VDX-', ''));
+
+        const body = beginCell()
+            .storeUint(0x2, 32)
+            .storeUint(0, 64)
+            .storeUint(txIdNum, 64)
+            .endCell();
+
+        await opened.sendTransfer({
             secretKey: key.secretKey,
             seqno,
             messages: [
                 internal({
                     to: Address.parse(CONTRACT_ADDRESS),
                     value: toNano('0.05'),
-                    body: JSON.stringify({ type: 'Release', txId: tx.id })
+                    body: body
                 })
             ]
         });
@@ -480,6 +488,3 @@ async function liberarConContrato(tx) {
         return false;
     }
 }
-bot.launch();
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
