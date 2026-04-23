@@ -201,24 +201,7 @@ if (tx.estado === 'esperando_comprador_precio') {
         ])
     );
 }
-                if (amount !== tx.vendedor_precio) {
-                    return ctx.replyWithMarkdown(txt(txLang, 'priceMismatch', {
-                        seller: tx.vendedor_precio.toFixed(2),
-                        buyer: amount.toFixed(2)
-                    }));
-                }
-                const fee = calcFee(amount);
-                const total = parseFloat((amount + fee).toFixed(2));
-                await saveTx({ ...tx, comprador_precio: amount, comprador_id: userId, fee, total, estado: 'esperando_quien_paga' });
-                return ctx.replyWithMarkdown(
-                    txt(txLang, 'priceMatch', { amount: amount.toFixed(2), fee: fee.toFixed(2), total: total.toFixed(2), code: tx.code }),
-                    Markup.inlineKeyboard([
-                        [Markup.button.callback(txt(txLang, 'buyerPays'), 'fee_buyer_' + tx.id)],
-                        [Markup.button.callback(txt(txLang, 'sellerPays'), 'fee_seller_' + tx.id)],
-                        [Markup.button.callback(txt(txLang, 'splitPays'), 'fee_split_' + tx.id)]
-                    ])
-                );
-            }
+    
             return;
         }
     }
