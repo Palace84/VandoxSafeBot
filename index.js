@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { TonClient, WalletContractV4, internal, toNano, Address, beginCell } = require('@ton/ton');
 const { mnemonicToPrivateKey } = require('@ton/crypto');
 
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+const CONTRACT_ADDRESS = process.env.BOT_WALLET_ADDRESS;
 const WALLET_MNEMONIC = process.env.WALLET_MNEMONIC;
 
 const tonClient = new TonClient({
@@ -15,7 +15,7 @@ const { createClient } = require('@supabase/supabase-js');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ADMIN_ID = process.env.ADMIN_ID;
-const WALLET_TON = process.env.CONTRACT_ADDRESS;
+const WALLET_TON = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
 
 function calcFee(amount) {
     return amount <= 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
