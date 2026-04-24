@@ -456,19 +456,32 @@ async function liberarAutomatico(tx) {
     if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 *Pago verificado en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
     await notifyAdmin('✅ *Pago verificado y liberado automáticamente*\nTX: ' + tx.id + '\nImporte: $' + (tx.total_depositar || tx.total));
 }
-async function liberarConContrato(tx) {
+async function enviarUSDT(destinatario, cantidad) {
     try {
         const key = await mnemonicToPrivateKey(WALLET_MNEMONIC.split(' '));
         const wallet = WalletContractV4.create({ publicKey: key.publicKey, workchain: 0 });
         const opened = tonClient.open(wallet);
         const seqno = await opened.getSeqno();
 
-        const txIdNum = parseInt(tx.id.replace('VDX-', ''));
+        const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+        
+        const jettonResp = await fetch(
+            'https://tonapi.io/v2/accounts/' + 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac' + '/jettons/' + USDT_MASTER,
+            { headers: { 'Accept': 'application/json' } }
+        );
+        const jettonData = await jettonResp.json();
+        const jettonWallet = jettonData.wallet_address?.address;
+        if (!jettonWallet) throw new Error('No se encontró jetton wallet del bot');
 
         const body = beginCell()
-            .storeUint(0x2, 32)
+            .storeUint(0xf8a7ea5, 32)
             .storeUint(0, 64)
-            .storeUint(txIdNum, 64)
+            .storeCoins(BigInt(Math.round(cantidad * 1e6)))
+            .storeAddress(Address.parse(destinatario))
+            .storeAddress(Address.parse('UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac'))
+            .storeBit(false)
+            .storeCoins(toNano('0.01'))
+            .storeBit(false)
             .endCell();
 
         await opened.sendTransfer({
@@ -476,7 +489,7 @@ async function liberarConContrato(tx) {
             seqno,
             messages: [
                 internal({
-                    to: Address.parse(CONTRACT_ADDRESS),
+                    to: Address.parseRaw(jettonWallet),
                     value: toNano('0.05'),
                     body: body
                 })
@@ -484,10 +497,132 @@ async function liberarConContrato(tx) {
         });
         return true;
     } catch(e) {
-        console.log('Error contrato:', e.message);
+        console.log('Error enviarUSDT:', e.message);
         return false;
     }
 }
+
+async function distribuirFondos(tx) {
+    try {
+        const monto = parseFloat(tx.comprador_precio || 0);
+        const fee = parseFloat(tx.fee || 0);
+        const OWNER = process.env.OWNER_WALLET;
+
+        if (!tx.vendedor_wallet) {
+            console.log('Sin wallet de vendedor para TX:', tx.id);
+            return false;
+        }
+
+        await enviarUSDT(tx.vendedor_wallet, monto);
+        await new Promise(r => setTimeout(r, 3000));
+        await enviarUSDT(OWNER, fee);
+        
+        return true;
+    } catch(e) {
+        console.log('Error distribuirFondos:', e.message);
+        return false;
+    }
+}
+
+async function verificarPagoUSDT(tx) {
+    try {
+        const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
+        if (!totalEsperado) return false;
+
+        const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+        const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+        
+        const url = 'https://tonapi.io/v2/accounts/' + BOT_WALLET + '/jettons/' + USDT_MASTER + '/history?limit=20';
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) return false;
+        const data = await response.json();
+        if (!data.events) return false;
+
+        const ahora = Math.floor(Date.now() / 1000);
+
+        for (const event of data.events) {
+            if ((ahora - event.timestamp) > 7200) continue;
+            for (const action of event.actions) {
+                if (action.type !== 'JettonTransfer') continue;
+                const amount = parseFloat(action.JettonTransfer?.amount || '0') / 1e6;
+                const comment = action.JettonTransfer?.comment || '';
+                if (Math.abs(amount - totalEsperado) < 0.1 || comment.includes(tx.code)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } catch(e) {
+        console.log('Error verificacion:', e.message);
+        return false;
+    }
+}
+
+async function liberarAutomatico(tx) {
+    const ok = await distribuirFondos(tx);
+    await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
+    const lang = tx.lang || 'en';
+    const msg = txt(lang, 'released', { txid: tx.id });
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 ' + msg, { parse_mode: 'Markdown' });
+    await notifyAdmin('✅ Liberado automáticamente\nTX: ' + tx.id + '\nDistribuido: ' + (ok ? 'SÍ' : 'ERROR'));
+}
+
+async function iniciarVerificacionActiva(txId) {
+    let intentos = 0;
+    const tx = await getTx(txId);
+    if (!tx) return;
+
+    const intervalRapido = setInterval(async () => {
+        intentos++;
+        const txActual = await getTx(txId);
+        if (!txActual || txActual.estado !== 'verificando_pago') {
+            clearInterval(intervalRapido);
+            return;
+        }
+        const pagado = await verificarPagoUSDT(txActual);
+        if (pagado) {
+            clearInterval(intervalRapido);
+            await liberarAutomatico(txActual);
+            return;
+        }
+        if (intentos >= 24) {
+            clearInterval(intervalRapido);
+            let intentosSlow = 0;
+            const intervalLento = setInterval(async () => {
+                intentosSlow++;
+                const txActual2 = await getTx(txId);
+                if (!txActual2 || txActual2.estado !== 'verificando_pago') { clearInterval(intervalLento); return; }
+                const pagado2 = await verificarPagoUSDT(txActual2);
+                if (pagado2) { clearInterval(intervalLento); await liberarAutomatico(txActual2); return; }
+                if (intentosSlow >= 48) {
+                    clearInterval(intervalLento);
+                    await notifyAdmin('⚠️ Pago no detectado 2h\nTX: ' + txId);
+                }
+            }, 120000);
+        }
+    }, 30000);
+}
+
+// CRON: AUTO-RELEASE cada minuto
+setInterval(async () => {
+    try {
+        const ahora = new Date().toISOString();
+        const { data } = await supabase
+            .from('transacciones')
+            .select('*')
+            .eq('is_protected', true)
+            .eq('estado', 'verificando_pago')
+            .lt('auto_release_at', ahora);
+        if (data && data.length > 0) {
+            for (const tx of data) {
+                await liberarAutomatico(tx);
+            }
+        }
+    } catch(e) { console.log('Cron error:', e.message); }
+}, 60000);
+
 bot.launch();
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
