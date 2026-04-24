@@ -239,13 +239,13 @@ bot.action('start_sale', async (ctx) => {
     const code = genCode();
     await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'esperando_vendedor_precio', lang, code, tipo: 'venta' });
 const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId;
-ctx.replyWithMarkdown(txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_');
-await ctx.reply('🛡️ Vandox Safe', {
-    reply_markup: {
-        inline_keyboard: [[
-            { text: '🛡️ Open Vandox Safe', web_app: { url: miniAppUrl } }
-        ]]
-    }
+const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId;
+ctx.replyWithMarkdown(
+    txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
+    Markup.inlineKeyboard([
+        [Markup.button.url('🛡️ Open Vandox Safe', miniAppUrl)]
+    ])
+);
 });
 });
 
