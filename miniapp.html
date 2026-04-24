@@ -109,7 +109,51 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <div class="error-sub" id="error-sub">This deal may have expired or doesn't exist.</div>
   </div>
 </div>
+<!-- SETUP -->
+<div class="screen" id="s-setup">
+  <div class="card">
+    <div class="deal-amount" style="font-size:22px" id="setup-title">¿Qué tipo de trato?</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 1rem">
+    <div onclick="selectType('sale')" style="background:#1a2235;border:1px solid #2d3748;border-radius:14px;padding:1.25rem;cursor:pointer;text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">💵</div>
+      <div style="font-size:14px;font-weight:700;color:#f1f5f9">Venta</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">Dinero por producto</div>
+      <div style="font-size:11px;margin-top:8px;font-weight:700;color:#00c896">$1 o 1.5%</div>
+    </div>
+    <div onclick="selectType('swap')" style="background:#1a2235;border:1px solid #2d3748;border-radius:14px;padding:1.25rem;cursor:pointer;text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">🔄</div>
+      <div style="font-size:14px;font-weight:700;color:#f1f5f9">Trueque</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">Producto por producto</div>
+      <div style="font-size:11px;margin-top:8px;font-weight:700;color:#a78bfa">Siempre $1</div>
+    </div>
+  </div>
+</div>
 
+<!-- PRICE SETUP -->
+<div class="screen" id="s-price">
+  <div class="card" style="margin:1rem">
+    <div class="card-title">Tu rol en este trato</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <div onclick="selectRole('seller')" id="btn-seller" style="background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem;cursor:pointer;text-align:center">
+        <div style="font-size:24px;margin-bottom:6px">📤</div>
+        <div style="font-size:13px;font-weight:600;color:#f1f5f9">Vendedor</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:3px">Entrego el producto</div>
+      </div>
+      <div onclick="selectRole('buyer')" id="btn-buyer" style="background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem;cursor:pointer;text-align:center">
+        <div style="font-size:24px;margin-bottom:6px">📥</div>
+        <div style="font-size:13px;font-weight:600;color:#f1f5f9">Comprador</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:3px">Pago por el producto</div>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="price-form" style="display:none;margin:0 1rem">
+    <div class="card-title">Declara el precio acordado (USD)</div>
+    <input type="number" id="price-input" placeholder="ej: 150" style="background:#0a0f1e;border:1px solid #2d3748;border-radius:10px;padding:12px 14px;font-size:18px;color:#f1f5f9;width:100%;outline:none;margin-top:8px">
+    <div id="price-feedback" style="margin-top:10px;display:none"></div>
+    <button onclick="declarePrice()" style="width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e;margin-top:12px" id="btn-declare">Confirmar precio</button>
+  </div>
+</div>
 <!-- MAIN DEAL -->
 <div class="screen" id="s-deal">
   <div class="card">
@@ -321,15 +365,19 @@ function getTxIdFromUrl() {
 
 async function loadDeal() {
   txId = getTxIdFromUrl();
-  if (!txId) {
-    goTo('s-error');
-    return;
-  }
+  if (!txId) { goTo('s-error'); return; }
 
   const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
   if (error || !data) { goTo('s-error'); return; }
 
   currentTx = data;
+  L = data.lang || L;
+
+  if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
+    goTo('s-setup');
+    return;
+  }
+
   renderDeal(data);
   goTo('s-deal');
 }
@@ -446,7 +494,53 @@ async function openDispute() {
   if (tg) tg.sendData(JSON.stringify({ action: 'dispute', txId: txId }));
   alert(L === 'es' ? 'Disputa abierta. Vandox revisará el caso.' : 'Dispute opened. Vandox will review the case.');
 }
+var userRole = null;
+var dealType = null;
 
+function selectType(type) {
+  dealType = type;
+  db.from('transacciones').update({ tipo: type, estado: 'configurando' }).eq('id', txId).then(() => {
+    goTo('s-price');
+  });
+}
+
+function selectRole(role) {
+  userRole = role;
+  document.getElementById('btn-seller').style.borderColor = role === 'seller' ? '#00c896' : '#2d3748';
+  document.getElementById('btn-seller').style.background = role === 'seller' ? 'rgba(0,200,150,0.1)' : '#0a0f1e';
+  document.getElementById('btn-buyer').style.borderColor = role === 'buyer' ? '#00c896' : '#2d3748';
+  document.getElementById('btn-buyer').style.background = role === 'buyer' ? 'rgba(0,200,150,0.1)' : '#0a0f1e';
+  document.getElementById('price-form').style.display = 'block';
+}
+
+async function declarePrice() {
+  const price = parseFloat(document.getElementById('price-input').value);
+  if (isNaN(price) || price <= 0) { alert('Introduce un precio válido'); return; }
+  const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
+  if (userRole === 'seller') {
+    await db.from('transacciones').update({ vendedor_precio: price, vendedor_id: tg?.initDataUnsafe?.user?.id?.toString(), estado: 'esperando_comprador_precio' }).eq('id', txId);
+    document.getElementById('price-feedback').style.display = 'block';
+    document.getElementById('price-feedback').innerHTML = '<div class="alert alert-success">✅ Precio declarado: <strong>$' + price.toFixed(2) + '</strong>. Esperando al comprador...</div>';
+    document.getElementById('btn-declare').style.display = 'none';
+  } else {
+    if (!data.vendedor_precio) {
+      document.getElementById('price-feedback').style.display = 'block';
+      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">⏳ El vendedor aún no ha declarado el precio.</div>';
+      return;
+    }
+    if (parseFloat(data.vendedor_precio) === price) {
+      const fee = price <= 50 ? 1.00 : parseFloat((price * 0.015).toFixed(2));
+      const total = parseFloat((price + fee).toFixed(2));
+      await db.from('transacciones').update({ comprador_precio: price, comprador_id: tg?.initDataUnsafe?.user?.id?.toString(), fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
+      currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
+      renderDeal(currentTx);
+      goTo('s-deal');
+    } else {
+      document.getElementById('price-feedback').style.display = 'block';
+      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">❌ No coincide. El vendedor declaró $' + parseFloat(data.vendedor_precio).toFixed(2) + '. Corrígelo.</div>';
+    }
+  }
+}
 applyLang();
 loadDeal();
 </script>
