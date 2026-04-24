@@ -242,7 +242,7 @@ bot.action('start_sale', async (ctx) => {
 ctx.replyWithMarkdown(
     txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
     Markup.inlineKeyboard([
-        [Markup.button.webApp('🛡️ Open Vandox Safe', miniAppUrl)]
+        [[Markup.button.url('🛡️ Open Vandox Safe', miniAppUrl)]]
     ])
 );
 });
