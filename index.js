@@ -209,15 +209,24 @@ if (tx.estado === 'esperando_comprador_precio') {
     // PRIORIDAD 2: detectar palabras clave de trato
     const lower = text.toLowerCase();
     const isTrigger = triggers.some(t => lower.includes(t));
-    if (isTrigger) {
-        return ctx.replyWithMarkdown(
-            txt(lang, 'detected'),
-            Markup.inlineKeyboard([
-                [Markup.button.callback(txt(lang, 'startBtn'), 'start_deal')],
-                [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
-            ])
-        );
-    }
+ if (isTrigger) {
+    const txId = genTxId();
+    const code = genCode();
+    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'nuevo', lang, code, tipo: 'pendiente' });
+    const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId;
+    return ctx.reply(
+        '🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'),
+        {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), url: miniAppUrl }],
+                    [{ text: '📊 ' + (lang === 'es' ? 'Ver tarifas' : 'View pricing'), callback_data: 'tarifas' },
+                     { text: '❓ ' + (lang === 'es' ? 'Ayuda' : 'Help'), callback_data: 'ayuda' }]
+                ]
+            }
+        }
+    );
+}
 });
 
 // BOTON: INICIAR TRATO
