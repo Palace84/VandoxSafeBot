@@ -1,1 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vandox Safe</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
+body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-direction:column}
+.header{padding:1rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e2d45}
+.logo{width:36px;height:36px;background:#00c896;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-size:17px;font-weight:700;color:#f1f5f9}
+.logo-sub{font-size:11px;color:#94a3b8}
+.screen{display:none;flex-direction:column;gap:1rem;padding:1rem;flex:1}
+.screen.active{display:flex}
+.card{background:#1a2235;border:1px solid #2d3748;border-radius:14px;padding:1.25rem}
+.card-title{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px}
+.deal-amount{font-size:32px;font-weight:700;color:#00c896;text-align:center;padding:1rem 0}
+.deal-desc{font-size:14px;color:#94a3b8;text-align:center;margin-top:-8px}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1e2d45}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:13px;color:#94a3b8}
+.info-value{font-size:13px;font-weight:600;color:#f1f5f9}
+.info-value.green{color:#00c896}
+.info-value.amber{color:#f59e0b}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.b-green{background:rgba(0,200,150,0.12);color:#00c896;border:1px solid #00c896}
+.b-amber{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid #f59e0b}
+.b-blue{background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid #3b82f6}
+.b-red{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid #ef4444}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
+.vault{background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem}
+.vault-slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;margin-top:8px}
+.vslot{background:#1a2235;border:1px solid #2d3748;border-radius:10px;padding:1rem;text-align:center;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.vslot.filled{border-color:#00c896;background:rgba(0,200,150,0.08)}
+.vslot.pending{border-color:#f59e0b}
+.slot-icon{font-size:20px}
+.slot-label{font-size:11px;color:#94a3b8}
+.slot-status{font-size:11px;font-weight:600}
+.ok{color:#00c896}
+.wait{color:#f59e0b}
+.vdiv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;background:#0a0f1e;border:1px solid #2d3748;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;z-index:1}
+.progress{background:#1a2235;border-radius:100px;height:6px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:#00c896;border-radius:100px;transition:width 0.5s}
+.steps{display:flex;justify-content:space-between;margin-top:6px}
+.step{display:flex;flex-direction:column;align-items:center;gap:3px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:#475569}
+.step-dot.done{background:#00c896}
+.step-dot.active{background:#f59e0b}
+.step-label{font-size:9px;color:#94a3b8}
+.wallet-box{background:#0a0f1e;border:1px solid #2d3748;border-radius:10px;padding:10px 14px}
+.wallet-label{font-size:11px;color:#94a3b8;margin-bottom:4px}
+.wallet-addr{font-size:11px;color:#f1f5f9;word-break:break-all;line-height:1.5}
+.copy-btn{background:rgba(0,200,150,0.12);border:1px solid #00c896;border-radius:8px;padding:5px 12px;font-size:12px;color:#00c896;cursor:pointer;margin-top:6px;width:100%}
+.btn-pay{width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e;margin-top:auto}
+.btn-secondary{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #2d3748;background:#1a2235;color:#f1f5f9}
+.btn-danger{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;margin-top:8px}
+.ton-connect{width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:none;background:#0088cc;color:white;display:flex;align-items:center;justify-content:center;gap:8px}
+.connected-wallet{background:#1a2235;border:1px solid #00c896;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between}
+.connected-info{font-size:12px;color:#94a3b8}
+.connected-addr{font-size:13px;font-weight:600;color:#00c896}
+.disconnect-btn{font-size:11px;color:#ef4444;cursor:pointer;background:none;border:none}
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode-btn{padding:10px;border-radius:10px;text-align:center;cursor:pointer;border:1px solid #2d3748;background:#0a0f1e;font-size:13px;color:#94a3b8}
+.mode-btn.active{border-color:#00c896;color:#00c896;background:rgba(0,200,150,0.08)}
+.loading{text-align:center;padding:3rem;color:#94a3b8}
+.loading-icon{font-size:32px;margin-bottom:1rem;animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.error-screen{text-align:center;padding:3rem 1rem}
+.error-icon{font-size:48px;margin-bottom:1rem}
+.error-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.error-sub{font-size:14px;color:#94a3b8}
+.success-screen{text-align:center;padding:3rem 1rem}
+.success-icon{width:80px;height:80px;background:rgba(0,200,150,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:36px;border:1px solid #00c896}
+.success-title{font-size:22px;font-weight:700;margin-bottom:8px}
+.success-sub{font-size:14px;color:#94a3b8;line-height:1.6}
+.alert{border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
+.alert-info{background:rgba(59,130,246,0.12);border:1px solid #3b82f6;color:#94a3b8}
+.alert-warn{background:rgba(245,158,11,0.12);border:1px solid #f59e0b;color:#94a3b8}
+.alert-success{background:rgba(0,200,150,0.12);border:1px solid #00c896;color:#94a3b8}
+.alert strong{color:#f1f5f9}
+</style>
+</head>
+<body>
 
+<div class="header">
+  <div class="logo">🛡️</div>
+  <div>
+    <div class="logo-text">Vandox Safe</div>
+    <div class="logo-sub" id="lang-sub">Secure Escrow</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="screen active" id="s-loading">
+  <div class="loading">
+    <div class="loading-icon">⚙️</div>
+    <div id="loading-text">Loading deal...</div>
+  </div>
+</div>
+
+<!-- ERROR -->
+<div class="screen" id="s-error">
+  <div class="error-screen">
+    <div class="error-icon">❌</div>
+    <div class="error-title" id="error-title">Deal not found</div>
+    <div class="error-sub" id="error-sub">This deal may have expired or doesn't exist.</div>
+  </div>
+</div>
+
+<!-- MAIN DEAL -->
+<div class="screen" id="s-deal">
+  <div class="card">
+    <div class="deal-amount" id="deal-amount">$0.00</div>
+    <div class="deal-desc" id="deal-desc">Loading...</div>
+    <div style="text-align:center;margin-top:12px">
+      <span class="badge b-amber" id="deal-badge"><span class="dot"></span> Awaiting payment</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="lbl-vault">Vault status</div>
+    <div class="vault">
+      <div style="font-size:12px;color:#94a3b8;text-align:center" id="vault-subtitle">Both slots must be filled to release</div>
+      <div class="vault-slots">
+        <div class="vslot pending" id="slot-money">
+          <div class="slot-icon">💵</div>
+          <div class="slot-label" id="lbl-payment">Payment</div>
+          <div class="slot-status wait" id="slot-money-status">Pending</div>
+        </div>
+        <div class="vdiv">⇄</div>
+        <div class="vslot" id="slot-product">
+          <div class="slot-icon">📦</div>
+          <div class="slot-label" id="lbl-product">Product</div>
+          <div class="slot-status wait" id="slot-product-status">Pending</div>
+        </div>
+      </div>
+    </div>
+    <div class="progress" style="margin-top:12px">
+      <div class="progress-fill" id="progress-fill" style="width:25%"></div>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-dot done"></div><div class="step-label" id="s1">Created</div></div>
+      <div class="step"><div class="step-dot active" id="sd2"></div><div class="step-label" id="s2">Payment</div></div>
+      <div class="step"><div class="step-dot" id="sd3"></div><div class="step-label" id="s3">Delivery</div></div>
+      <div class="step"><div class="step-dot" id="sd4"></div><div class="step-label" id="s4">Released</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="lbl-details">Deal details</div>
+    <div class="info-row"><span class="info-label" id="lbl-amount">Amount</span><span class="info-value green" id="val-amount">-</span></div>
+    <div class="info-row"><span class="info-label" id="lbl-fee">Vandox fee</span><span class="info-value" id="val-fee">-</span></div>
+    <div class="info-row"><span class="info-label" id="lbl-total">Total to send</span><span class="info-value green" id="val-total">-</span></div>
+    <div class="info-row"><span class="info-label" id="lbl-code">Verification code</span><span class="info-value" id="val-code" style="font-family:monospace;font-size:16px;font-weight:700;color:#00c896">-</span></div>
+    <div class="info-row"><span class="info-label" id="lbl-mode">Mode</span><span id="val-mode">-</span></div>
+  </div>
+
+  <div class="card" id="payment-card">
+    <div class="card-title" id="lbl-pay-title">Send payment</div>
+    <div class="alert alert-warn" style="margin-bottom:12px">
+      <span>⚠️</span>
+      <span id="alert-network"><strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.</span>
+    </div>
+    <div class="wallet-box">
+      <div class="wallet-label" id="lbl-wallet">Vandox Vault Address</div>
+      <div class="wallet-addr" id="vault-address">Loading...</div>
+      <button class="copy-btn" onclick="copyAddress()" id="copy-btn">📋 Copy address</button>
+    </div>
+    <div class="alert alert-info" style="margin-top:12px">
+      <span>💡</span>
+      <span id="alert-memo"><strong>Important:</strong> Include the verification code as memo/comment when sending.</span>
+    </div>
+    <button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px">✅ I have sent the payment</button>
+  </div>
+
+  <div class="card" id="upload-card" style="display:none">
+    <div class="card-title" id="lbl-upload-title">Upload your product</div>
+    <div class="alert alert-success" style="margin-bottom:12px">
+      <span>✅</span>
+      <span id="alert-paid-confirm"><strong>Payment confirmed.</strong> Now upload your digital product.</span>
+    </div>
+    <input type="file" id="file-input" style="display:none" onchange="handleFileUpload(event)">
+    <div style="background:#0a0f1e;border:1px dashed #2d3748;border-radius:12px;padding:2rem;text-align:center;cursor:pointer" onclick="document.getElementById('file-input').click()">
+      <div style="font-size:28px;margin-bottom:8px">📁</div>
+      <div style="font-size:14px;color:#94a3b8" id="upload-text">Tap to upload file</div>
+      <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB · All formats</div>
+    </div>
+  </div>
+
+  <div class="card" id="confirm-card" style="display:none">
+    <div class="card-title" id="lbl-confirm-title">Review & release</div>
+    <div class="alert alert-success" style="margin-bottom:12px">
+      <span>📦</span>
+      <span id="alert-product-ready"><strong>Product uploaded.</strong> Review carefully before releasing funds.</span>
+    </div>
+    <button class="btn-pay" onclick="releaseFunds()" id="btn-release">✅ Confirm & release funds</button>
+    <button class="btn-danger" onclick="openDispute()" id="btn-dispute">⚠️ Open dispute</button>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="screen" id="s-success">
+  <div class="success-screen">
+    <div class="success-icon">🛡️</div>
+    <div class="success-title" id="success-title">Deal complete!</div>
+    <div class="success-sub" id="success-sub">Funds released instantly. Recorded on blockchain. Permanent.</div>
+    <div style="margin-top:1.5rem"><span class="badge b-green"><span class="dot"></span> Verified on TON</span></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'TU_SUPABASE_URL';
+const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY';
+const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
+
+var L = (navigator.language || 'en').startsWith('es') ? 'es' : 'en';
+var currentTx = null;
+var txId = null;
+
+const T = {
+  en: {
+    'lang-sub': 'Secure Escrow',
+    'loading-text': 'Loading deal...',
+    'error-title': 'Deal not found',
+    'error-sub': 'This deal may have expired.',
+    'lbl-vault': 'Vault status',
+    'vault-subtitle': 'Both slots must be filled to release',
+    'lbl-payment': 'Payment',
+    'lbl-product': 'Product',
+    's1': 'Created', 's2': 'Payment', 's3': 'Delivery', 's4': 'Released',
+    'lbl-details': 'Deal details',
+    'lbl-amount': 'Amount', 'lbl-fee': 'Vandox fee', 'lbl-total': 'Total to send', 'lbl-code': 'Code', 'lbl-mode': 'Mode',
+    'lbl-pay-title': 'Send payment',
+    'alert-network': '<strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.',
+    'lbl-wallet': 'Vandox Vault Address',
+    'copy-btn': '📋 Copy address',
+    'alert-memo': '<strong>Important:</strong> Include verification code as memo/comment.',
+    'btn-paid': '✅ I have sent the payment',
+    'lbl-upload-title': 'Upload your product',
+    'alert-paid-confirm': '<strong>Payment confirmed.</strong> Now upload your digital product.',
+    'upload-text': 'Tap to upload file',
+    'upload-sub': 'Max 50MB · All formats',
+    'lbl-confirm-title': 'Review & release',
+    'alert-product-ready': '<strong>Product uploaded.</strong> Review carefully before releasing.',
+    'btn-release': '✅ Confirm & release funds',
+    'btn-dispute': '⚠️ Open dispute',
+    'success-title': 'Deal complete!',
+    'success-sub': 'Funds released. Recorded on blockchain. Permanent.',
+    'slot-pending': 'Pending', 'slot-confirmed': 'Confirmed ✓', 'slot-uploaded': 'Uploaded ✓',
+    'deal-badge-pending': 'Awaiting payment',
+    'deal-badge-verifying': 'Verifying payment',
+    'deal-badge-delivery': 'Awaiting delivery',
+    'deal-badge-reviewing': 'Reviewing',
+    'deal-badge-released': 'Released ✓',
+    'mode-express': '⚡ Express',
+    'mode-protected': '🛡️ Protected',
+  },
+  es: {
+    'lang-sub': 'Custodia Segura',
+    'loading-text': 'Cargando trato...',
+    'error-title': 'Trato no encontrado',
+    'error-sub': 'Este trato puede haber expirado.',
+    'lbl-vault': 'Estado de la bóveda',
+    'vault-subtitle': 'Ambos compartimentos deben llenarse para liberar',
+    'lbl-payment': 'Pago',
+    'lbl-product': 'Producto',
+    's1': 'Creado', 's2': 'Pago', 's3': 'Entrega', 's4': 'Liberado',
+    'lbl-details': 'Detalles del trato',
+    'lbl-amount': 'Importe', 'lbl-fee': 'Tarifa Vandox', 'lbl-total': 'Total a enviar', 'lbl-code': 'Código', 'lbl-mode': 'Modo',
+    'lbl-pay-title': 'Enviar pago',
+    'alert-network': '<strong>Solo red TON.</strong> Envía USDT por TON. Red incorrecta = fondos perdidos.',
+    'lbl-wallet': 'Dirección de la bóveda Vandox',
+    'copy-btn': '📋 Copiar dirección',
+    'alert-memo': '<strong>Importante:</strong> Incluye el código como memo/comentario al enviar.',
+    'btn-paid': '✅ Ya he enviado el pago',
+    'lbl-upload-title': 'Sube tu producto',
+    'alert-paid-confirm': '<strong>Pago confirmado.</strong> Ahora sube tu producto digital.',
+    'upload-text': 'Toca para subir archivo',
+    'upload-sub': 'Máx 50MB · Todos los formatos',
+    'lbl-confirm-title': 'Revisar y liberar',
+    'alert-product-ready': '<strong>Producto subido.</strong> Revísalo antes de liberar los fondos.',
+    'btn-release': '✅ Confirmar y liberar fondos',
+    'btn-dispute': '⚠️ Abrir disputa',
+    'success-title': '¡Trato completado!',
+    'success-sub': 'Fondos liberados. Registrado en blockchain. Permanente.',
+    'slot-pending': 'Pendiente', 'slot-confirmed': 'Confirmado ✓', 'slot-uploaded': 'Subido ✓',
+    'deal-badge-pending': 'Esperando pago',
+    'deal-badge-verifying': 'Verificando pago',
+    'deal-badge-delivery': 'Esperando entrega',
+    'deal-badge-reviewing': 'Revisando',
+    'deal-badge-released': 'Liberado ✓',
+    'mode-express': '⚡ Express',
+    'mode-protected': '🛡️ Protegido',
+  }
+};
+
+function t(key) { return T[L][key] || T['en'][key] || key; }
+function applyLang() { Object.keys(T[L]).forEach(k => { var el = document.getElementById(k); if (el) el.innerHTML = t(k); }); }
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function getTxIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('txid')) return params.get('txid');
+  const tgData = tg?.initDataUnsafe?.start_param;
+  if (tgData) return tgData;
+  return null;
+}
+
+async function loadDeal() {
+  txId = getTxIdFromUrl();
+  if (!txId) {
+    goTo('s-error');
+    return;
+  }
+
+  const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
+  if (error || !data) { goTo('s-error'); return; }
+
+  currentTx = data;
+  renderDeal(data);
+  goTo('s-deal');
+}
+
+function renderDeal(tx) {
+  const amount = tx.comprador_precio || 0;
+  const fee = tx.fee || 0;
+  const total = tx.total_depositar || tx.total || (amount + fee);
+
+  document.getElementById('deal-amount').textContent = '$' + parseFloat(total).toFixed(2) + ' USDT';
+  document.getElementById('deal-desc').textContent = tx.descripcion || (L === 'es' ? 'Producto digital' : 'Digital product');
+  document.getElementById('val-amount').textContent = '$' + parseFloat(amount).toFixed(2);
+  document.getElementById('val-fee').textContent = '$' + parseFloat(fee).toFixed(2);
+  document.getElementById('val-total').textContent = '$' + parseFloat(total).toFixed(2);
+  document.getElementById('val-code').textContent = tx.code || '-';
+  document.getElementById('vault-address').textContent = BOT_WALLET;
+  document.getElementById('val-mode').innerHTML = '<span class="badge b-blue">' + t('mode-express') + '</span>';
+
+  updateVaultState(tx.estado);
+}
+
+function updateVaultState(estado) {
+  const slotMoney = document.getElementById('slot-money');
+  const slotProduct = document.getElementById('slot-product');
+  const moneyStatus = document.getElementById('slot-money-status');
+  const productStatus = document.getElementById('slot-product-status');
+  const progress = document.getElementById('progress-fill');
+  const badge = document.getElementById('deal-badge');
+  const payCard = document.getElementById('payment-card');
+  const uploadCard = document.getElementById('upload-card');
+  const confirmCard = document.getElementById('confirm-card');
+
+  payCard.style.display = 'none';
+  uploadCard.style.display = 'none';
+  confirmCard.style.display = 'none';
+
+  if (estado === 'esperando_pago' || estado === 'esperando_quien_paga') {
+    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-pending');
+    badge.className = 'badge b-amber';
+    progress.style.width = '25%';
+    slotMoney.className = 'vslot pending';
+    moneyStatus.className = 'slot-status wait';
+    moneyStatus.textContent = t('slot-pending');
+    productStatus.textContent = t('slot-pending');
+    payCard.style.display = 'block';
+    document.getElementById('sd2').className = 'step-dot active';
+  } else if (estado === 'verificando_pago') {
+    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
+    badge.className = 'badge b-amber';
+    progress.style.width = '50%';
+    slotMoney.className = 'vslot filled';
+    moneyStatus.className = 'slot-status ok';
+    moneyStatus.textContent = t('slot-confirmed');
+    uploadCard.style.display = 'block';
+    document.getElementById('sd2').className = 'step-dot done';
+    document.getElementById('sd3').className = 'step-dot active';
+  } else if (estado === 'liberado') {
+    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
+    badge.className = 'badge b-green';
+    progress.style.width = '100%';
+    slotMoney.className = 'vslot filled';
+    slotProduct.className = 'vslot filled';
+    moneyStatus.className = 'slot-status ok';
+    productStatus.className = 'slot-status ok';
+    moneyStatus.textContent = t('slot-confirmed');
+    productStatus.textContent = t('slot-uploaded');
+    document.getElementById('sd2').className = 'step-dot done';
+    document.getElementById('sd3').className = 'step-dot done';
+    document.getElementById('sd4').className = 'step-dot done';
+    goTo('s-success');
+  }
+}
+
+function copyAddress() {
+  navigator.clipboard && navigator.clipboard.writeText(BOT_WALLET);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = L === 'es' ? '✅ Copiado!' : '✅ Copied!';
+  setTimeout(() => { btn.textContent = t('copy-btn'); }, 2000);
+}
+
+async function confirmPaid() {
+  if (!currentTx) return;
+  await db.from('transacciones').update({ estado: 'verificando_pago' }).eq('id', txId);
+  updateVaultState('verificando_pago');
+  if (tg) {
+    tg.sendData(JSON.stringify({ action: 'paid', txId: txId }));
+  }
+}
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById('upload-text').textContent = '✅ ' + file.name;
+  await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name }).eq('id', txId);
+  updateVaultState('entregado');
+  document.getElementById('upload-card').style.display = 'none';
+  document.getElementById('confirm-card').style.display = 'block';
+  document.getElementById('slot-product').className = 'vslot filled';
+  document.getElementById('slot-product-status').className = 'slot-status ok';
+  document.getElementById('slot-product-status').textContent = t('slot-uploaded');
+  document.getElementById('progress-fill').style.width = '75%';
+  document.getElementById('sd3').className = 'step-dot done';
+  document.getElementById('sd4').className = 'step-dot active';
+}
+
+async function releaseFunds() {
+  await db.from('transacciones').update({ estado: 'liberado' }).eq('id', txId);
+  if (tg) tg.sendData(JSON.stringify({ action: 'release', txId: txId }));
+  goTo('s-success');
+}
+
+async function openDispute() {
+  await db.from('transacciones').update({ estado: 'disputa' }).eq('id', txId);
+  if (tg) tg.sendData(JSON.stringify({ action: 'dispute', txId: txId }));
+  alert(L === 'es' ? 'Disputa abierta. Vandox revisará el caso.' : 'Dispute opened. Vandox will review the case.');
+}
+
+applyLang();
+loadDeal();
+</script>
+</body>
+</html>
