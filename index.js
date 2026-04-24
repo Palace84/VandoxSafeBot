@@ -247,8 +247,6 @@ ctx.replyWithMarkdown(
     ])
 );
 });
-});
-
 // BOTON: INICIAR SWAP
 bot.action('start_swap', async (ctx) => {
     await ctx.answerCbQuery();
