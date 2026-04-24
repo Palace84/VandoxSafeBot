@@ -373,7 +373,7 @@ async function loadDeal() {
   currentTx = data;
   L = data.lang || L;
 
-  if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
+ if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando' || data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
     goTo('s-setup');
     return;
   }
