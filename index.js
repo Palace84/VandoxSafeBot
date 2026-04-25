@@ -11,7 +11,16 @@ const tonClient = new TonClient({
     apiKey: ''
 });
 const { createClient } = require('@supabase/supabase-js');
+const express = require('express');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.listen(PORT, () => {
+    console.log('Mini App server running on port ' + PORT);
+});
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ADMIN_ID = process.env.ADMIN_ID;
