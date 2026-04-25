@@ -543,8 +543,15 @@ function selectRole(role) {
   document.getElementById('btn-buyer').style.borderColor = role === 'buyer' ? '#00c896' : '#2d3748';
   document.getElementById('btn-buyer').style.background = role === 'buyer' ? 'rgba(0,200,150,0.1)' : '#0a0f1e';
   document.getElementById('price-form').style.display = 'block';
+  if (role === 'buyer') {
+    document.getElementById('btn-seller').style.display = 'none';
+    document.getElementById('btn-buyer').style.display = 'none';
+  }
+  if (role === 'seller') {
+    document.getElementById('btn-seller').style.display = 'none';
+    document.getElementById('btn-buyer').style.display = 'none';
+  }
 }
-
 async function declarePrice() {
   const price = parseFloat(document.getElementById('price-input').value);
   if (isNaN(price) || price <= 0) { alert('Introduce un precio válido'); return; }
