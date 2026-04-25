@@ -213,7 +213,8 @@ if (tx.estado === 'esperando_comprador_precio') {
     const txId = genTxId();
     const code = genCode();
    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), vendedor_telegram_id: userId, vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor', estado: 'nuevo', lang, code, tipo: 'pendiente' });
-    const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId;
+    const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
+const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId + '&nombre=' + nombre;
     return ctx.reply(
         '🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'),
         {
@@ -248,7 +249,8 @@ bot.action('start_sale', async (ctx) => {
     const code = genCode();
     await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'esperando_vendedor_precio', lang, code, tipo: 'venta' });
 
-const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId;
+const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
+const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId + '&nombre=' + nombre;
 ctx.replyWithMarkdown(
     txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
     Markup.inlineKeyboard([
