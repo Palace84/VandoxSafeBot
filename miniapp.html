@@ -375,9 +375,7 @@ async function loadDeal() {
   currentTx = data;
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
   const myIdEl = document.getElementById('val-myid');
-if (myIdEl) myIdEl.textContent = myId || 'no detectado';
-const isVendedor = myId && data.vendedor_telegram_id && myId === data.vendedor_telegram_id;
-userRole = isVendedor ? 'seller' : 'buyer';
+userRole = (!data.vendedor_precio) ? 'seller' : 'buyer';
   L = data.lang || L;
 
 if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
