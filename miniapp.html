@@ -373,8 +373,15 @@ async function loadDeal() {
   currentTx = data;
   L = data.lang || L;
 
- if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando' || data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
+if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
     goTo('s-setup');
+    return;
+}
+if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
+    dealType = data.tipo;
+    goTo('s-price');
+    return;
+}
     return;
   }
 
