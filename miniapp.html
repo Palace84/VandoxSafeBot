@@ -272,6 +272,7 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
+  console.log('TG user:', JSON.stringify(tg?.initDataUnsafe?.user));
     tg.expand();
 }
 
