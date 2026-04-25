@@ -373,6 +373,7 @@ async function loadDeal() {
 
   currentTx = data;
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
+  console.log('myId:', myId, 'vendedor_id:', data.vendedor_telegram_id);
 const isVendedor = myId && data.vendedor_telegram_id && myId === data.vendedor_telegram_id;
 userRole = isVendedor ? 'seller' : 'buyer';
   L = data.lang || L;
