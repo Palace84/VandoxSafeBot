@@ -374,7 +374,6 @@ async function loadDeal() {
 
   currentTx = data;
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
-  console.log('myId:', myId, 'vendedor_id:', data.vendedor_telegram_id);
   const myIdEl = document.getElementById('val-myid');
 if (myIdEl) myIdEl.textContent = myId || 'no detectado';
 const isVendedor = myId && data.vendedor_telegram_id && myId === data.vendedor_telegram_id;
