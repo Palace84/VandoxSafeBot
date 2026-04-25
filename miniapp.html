@@ -270,7 +270,10 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
+if (tg) {
+    tg.ready();
+    tg.expand();
+}
 
 var L = (navigator.language || 'en').startsWith('es') ? 'es' : 'en';
 var currentTx = null;
@@ -369,9 +372,13 @@ function getTxIdFromUrl() {
   return null;
 }
 
-function getNombreFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return decodeURIComponent(params.get('nombre') || 'Usuario');
+function getNombreDeUsuario() {
+    const webAppData = window.Telegram?.WebApp?.initDataUnsafe;
+    if (webAppData && webAppData.user) {
+        return webAppData.user.first_name || webAppData.user.username || 'Usuario';
+    }
+    const params = new URLSearchParams(window.location.search);
+    return decodeURIComponent(params.get('nombre') || 'Usuario');
 }
 
 async function loadDeal() {
