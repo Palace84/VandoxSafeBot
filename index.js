@@ -17,7 +17,38 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
+const crypto = require('crypto');
 
+app.get('/user', (req, res) => {
+    const initData = req.query.initData;
+    if (!initData) return res.json({ user: null });
+    
+    try {
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+        
+        const dataCheckString = Array.from(params.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => k + '=' + v)
+            .join('\n');
+        
+        const secretKey = crypto.createHmac('sha256', 'WebAppData')
+            .update(process.env.BOT_TOKEN)
+            .digest();
+        
+        const calculatedHash = crypto.createHmac('sha256', secretKey)
+            .update(dataCheckString)
+            .digest('hex');
+        
+        if (calculatedHash !== hash) return res.json({ user: null });
+        
+        const user = JSON.parse(params.get('user') || '{}');
+        res.json({ user });
+    } catch(e) {
+        res.json({ user: null });
+    }
+});
 app.listen(PORT, () => {
     console.log('Mini App server running on port ' + PORT);
 });
