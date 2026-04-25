@@ -203,6 +203,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <div class="info-row"><span class="info-label" id="lbl-code">Verification code</span><span class="info-value" id="val-code" style="font-family:monospace;font-size:16px;font-weight:700;color:#00c896">-</span></div>
     <div class="info-row"><span class="info-label">TX ID</span><span class="info-value" id="val-txid" style="font-family:monospace;font-size:12px">-</span></div>
     <div class="info-row"><span class="info-label">Vendedor</span><span class="info-value" id="val-vendor" style="color:#00c896">-</span></div>
+    <div class="info-row"><span class="info-label">Comprador</span><span class="info-value" id="val-buyer-name" style="color:#3b82f6">-</span></div>
     <div class="info-row"><span class="info-label">Mi ID</span><span class="info-value" id="val-myid" style="font-size:11px;color:#475569">-</span></div>
     <div class="info-row"><span class="info-label" id="lbl-mode">Mode</span><span id="val-mode">-</span></div>
   </div>
@@ -433,6 +434,8 @@ const codeEl = document.getElementById('val-code');
   const txIdEl = document.getElementById('val-txid');
   const vendorEl = document.getElementById('val-vendor');
   if (vendorEl) vendorEl.textContent = tx.vendedor_nombre || 'Vendedor';
+  const buyerEl = document.getElementById('val-buyer-name');
+  if (buyerEl) buyerEl.textContent = tx.comprador_nombre || 'Esperando...';
   if (txIdEl) txIdEl.textContent = tx.id || '-';
   updateVaultState(tx.estado);
 }
@@ -577,6 +580,7 @@ async function declarePrice() {
     if (parseFloat(data.vendedor_precio) === price) {
       const fee = price <= 50 ? 1.00 : parseFloat((price * 0.015).toFixed(2));
       const total = parseFloat((price + fee).toFixed(2));
+      await db.from('transacciones').update({ comprador_nombre: tg?.initDataUnsafe?.user?.first_name || 'Comprador' }).eq('id', txId);
      await db.from('transacciones').update({ comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
       currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
       renderDeal(currentTx);
