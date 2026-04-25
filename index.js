@@ -212,7 +212,7 @@ if (tx.estado === 'esperando_comprador_precio') {
  if (isTrigger) {
     const txId = genTxId();
     const code = genCode();
-   await saveTx({ id: txId, grupo_id: String(ctx.chat.id), vendedor_telegram_id: userId, estado: 'nuevo', lang, code, tipo: 'pendiente' });
+   await saveTx({ id: txId, grupo_id: String(ctx.chat.id), vendedor_telegram_id: userId, vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor', estado: 'nuevo', lang, code, tipo: 'pendiente' });
     const miniAppUrl = 'https://palace84.github.io/VandoxSafeBot/miniapp.html?txid=' + txId;
     return ctx.reply(
         '🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'),
