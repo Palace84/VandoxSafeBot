@@ -133,6 +133,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 
 <!-- PRICE SETUP -->
 <div class="screen" id="s-price">
+  <div id="debug-tg" style="padding:8px 1rem;font-size:11px;color:#00c896;word-break:break-all">Cargando datos TG...</div>
   <button onclick="goTo('s-setup')" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;padding:8px 1rem;text-align:left">← Volver</button>
   <div class="card" style="margin:1rem">
     <div class="card-title">Tu rol en este trato</div>
@@ -273,6 +274,10 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
+  setTimeout(() => {
+    const el = document.getElementById('debug-tg');
+    if (el) el.textContent = 'TG: ' + JSON.stringify(tg?.initDataUnsafe?.user);
+}, 1000);
   document.getElementById('debug-info').textContent = 'User: ' + JSON.stringify(tg?.initDataUnsafe?.user);
   console.log('TG user:', JSON.stringify(tg?.initDataUnsafe?.user));
     tg.expand();
