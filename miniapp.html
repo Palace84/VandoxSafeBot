@@ -522,7 +522,7 @@ async function declarePrice() {
   if (isNaN(price) || price <= 0) { alert('Introduce un precio válido'); return; }
   const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
   if (userRole === 'seller') {
-    await db.from('transacciones').update({ vendedor_precio: price, vendedor_id: tg?.initDataUnsafe?.user?.id?.toString(), estado: 'esperando_comprador_precio' }).eq('id', txId);
+    await db.from('transacciones').update({ vendedor_precio: price, estado: 'esperando_comprador_precio' }).eq('id', txId);
     document.getElementById('price-feedback').style.display = 'block';
     document.getElementById('price-feedback').innerHTML = '<div class="alert alert-success">✅ Precio declarado: <strong>$' + price.toFixed(2) + '</strong>. Esperando al comprador...</div>';
     document.getElementById('btn-declare').style.display = 'none';
@@ -535,7 +535,7 @@ async function declarePrice() {
     if (parseFloat(data.vendedor_precio) === price) {
       const fee = price <= 50 ? 1.00 : parseFloat((price * 0.015).toFixed(2));
       const total = parseFloat((price + fee).toFixed(2));
-      await db.from('transacciones').update({ comprador_precio: price, comprador_id: tg?.initDataUnsafe?.user?.id?.toString(), fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
+     await db.from('transacciones').update({ comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
       currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
       renderDeal(currentTx);
       goTo('s-deal');
