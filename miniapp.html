@@ -555,6 +555,20 @@ async function declarePrice() {
     }
   }
 }
+  setInterval(async () => {
+    if (!txId || !currentTx) return;
+    const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
+    if (!data) return;
+    if (data.estado !== currentTx.estado) {
+        currentTx = data;
+        if (data.estado === 'esperando_pago') { renderDeal(data); goTo('s-deal'); }
+        if (data.estado === 'liberado') goTo('s-success');
+        if (data.estado === 'esperando_comprador_precio') {
+            dealType = data.tipo;
+            goTo('s-price');
+        }
+    }
+}, 5000);
 applyLang();
 loadDeal();
 </script>
