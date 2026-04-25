@@ -369,6 +369,11 @@ function getTxIdFromUrl() {
   return null;
 }
 
+function getNombreFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return decodeURIComponent(params.get('nombre') || 'Usuario');
+}
+
 async function loadDeal() {
   txId = getTxIdFromUrl();
   if (!txId) { goTo('s-error'); return; }
@@ -380,6 +385,9 @@ async function loadDeal() {
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
   const myIdEl = document.getElementById('val-myid');
 userRole = (!data.vendedor_precio) ? 'seller' : 'buyer';
+  if (userRole === 'buyer' && !data.comprador_nombre) {
+    await db.from('transacciones').update({ comprador_nombre: getNombreFromUrl() }).eq('id', txId);
+}
   L = data.lang || L;
 
 if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
