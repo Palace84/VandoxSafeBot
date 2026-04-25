@@ -383,6 +383,11 @@ if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'c
 }
 if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
     dealType = data.tipo;
+    if (userRole === 'seller') {
+        selectRole('seller');
+    } else {
+        selectRole('buyer');
+    }
     goTo('s-price');
     return;
 }
