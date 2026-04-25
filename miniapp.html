@@ -372,6 +372,9 @@ async function loadDeal() {
   if (error || !data) { goTo('s-error'); return; }
 
   currentTx = data;
+  const myId = tg?.initDataUnsafe?.user?.id?.toString();
+const isVendedor = myId && data.vendedor_telegram_id && myId === data.vendedor_telegram_id;
+userRole = isVendedor ? 'seller' : 'buyer';
   L = data.lang || L;
 
 if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
