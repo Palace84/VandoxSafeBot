@@ -409,7 +409,16 @@ function renderDeal(tx) {
   document.getElementById('val-code').textContent = tx.code || '-';
   document.getElementById('vault-address').textContent = BOT_WALLET;
   document.getElementById('val-mode').innerHTML = '<span class="badge b-blue">' + t('mode-express') + '</span>';
-
+const codeEl = document.getElementById('val-code');
+  if (codeEl) {
+    codeEl.textContent = tx.code || '-';
+    codeEl.style.fontSize = '20px';
+    codeEl.style.color = '#00c896';
+    codeEl.style.fontWeight = '700';
+  }
+  
+  const txIdEl = document.getElementById('val-txid');
+  if (txIdEl) txIdEl.textContent = tx.id || '-';
   updateVaultState(tx.estado);
 }
 
