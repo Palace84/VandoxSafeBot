@@ -393,7 +393,7 @@ async function loadDeal() {
   const myIdEl = document.getElementById('val-myid');
 userRole = (!data.vendedor_precio) ? 'seller' : 'buyer';
   if (userRole === 'buyer' && !data.comprador_nombre) {
-    await db.from('transacciones').update({ comprador_nombre: getNombreFromUrl() }).eq('id', txId);
+    await db.from('transacciones').update({ comprador_nombre: getNombreDeUsuario() }).eq('id', txId);
 }
   L = data.lang || L;
 
