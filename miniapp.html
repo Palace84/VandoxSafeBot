@@ -380,15 +380,18 @@ function getTxIdFromUrl() {
   return null;
 }
 
-function getNombreDeUsuario() {
-    const webAppData = window.Telegram?.WebApp?.initDataUnsafe;
-    if (webAppData && webAppData.user) {
-        return webAppData.user.first_name || webAppData.user.username || 'Usuario';
+async function getNombreDeUsuario() {
+    try {
+        const initData = window.Telegram?.WebApp?.initData;
+        if (!initData) return 'Usuario';
+        const resp = await fetch('https://vandox-bot-production.up.railway.app/user?initData=' + encodeURIComponent(initData));
+        const data = await resp.json();
+        if (data.user) return data.user.first_name || data.user.username || 'Usuario';
+        return 'Usuario';
+    } catch(e) {
+        return 'Usuario';
     }
-    const params = new URLSearchParams(window.location.search);
-    return decodeURIComponent(params.get('nombre') || 'Usuario');
 }
-
 async function loadDeal() {
   txId = getTxIdFromUrl();
   if (!txId) { goTo('s-error'); return; }
@@ -400,8 +403,9 @@ async function loadDeal() {
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
   const myIdEl = document.getElementById('val-myid');
 userRole = (!data.vendedor_precio) ? 'seller' : 'buyer';
-  if (userRole === 'buyer' && !data.comprador_nombre) {
-    await db.from('transacciones').update({ comprador_nombre: getNombreDeUsuario() }).eq('id', txId);
+if (userRole === 'buyer' && !data.comprador_nombre) {
+    const nombre = await getNombreDeUsuario();
+    await db.from('transacciones').update({ comprador_nombre: nombre }).eq('id', txId);
 }
   L = data.lang || L;
 
