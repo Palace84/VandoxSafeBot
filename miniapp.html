@@ -541,19 +541,20 @@ function selectType(type) {
 
 function selectRole(role) {
   userRole = role;
-  document.getElementById('btn-seller').style.borderColor = role === 'seller' ? '#00c896' : '#2d3748';
-  document.getElementById('btn-seller').style.background = role === 'seller' ? 'rgba(0,200,150,0.1)' : '#0a0f1e';
-  document.getElementById('btn-buyer').style.borderColor = role === 'buyer' ? '#00c896' : '#2d3748';
-  document.getElementById('btn-buyer').style.background = role === 'buyer' ? 'rgba(0,200,150,0.1)' : '#0a0f1e';
-  document.getElementById('price-form').style.display = 'block';
-  if (role === 'buyer') {
-    document.getElementById('btn-seller').style.display = 'none';
-    document.getElementById('btn-buyer').style.display = 'none';
-  }
+  const sellerBtn = document.getElementById('btn-seller');
+  const buyerBtn = document.getElementById('btn-buyer');
   if (role === 'seller') {
-    document.getElementById('btn-seller').style.display = 'none';
-    document.getElementById('btn-buyer').style.display = 'none';
+    sellerBtn.style.borderColor = '#00c896';
+    sellerBtn.style.background = 'rgba(0,200,150,0.1)';
+    buyerBtn.style.opacity = '0.4';
+    buyerBtn.style.pointerEvents = 'none';
+  } else {
+    buyerBtn.style.borderColor = '#00c896';
+    buyerBtn.style.background = 'rgba(0,200,150,0.1)';
+    sellerBtn.style.opacity = '0.4';
+    sellerBtn.style.pointerEvents = 'none';
   }
+  document.getElementById('price-form').style.display = 'block';
 }
 async function declarePrice() {
   const price = parseFloat(document.getElementById('price-input').value);
