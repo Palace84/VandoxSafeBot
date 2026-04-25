@@ -275,7 +275,7 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
   setTimeout(() => {
-    const el = document.getElementById('debug-tg');
+    if (el) el.textContent = 'initData: ' + (window.Telegram?.WebApp?.initData ? 'OK' : 'VACIO');
     if (el) el.textContent = 'TG: ' + JSON.stringify(tg?.initDataUnsafe?.user);
 }, 1000);
   document.getElementById('debug-info').textContent = 'User: ' + JSON.stringify(tg?.initDataUnsafe?.user);
