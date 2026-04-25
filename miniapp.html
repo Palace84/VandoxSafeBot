@@ -384,6 +384,16 @@ if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_v
 }
   renderDeal(data);
   goTo('s-deal');
+  setInterval(async () => {
+    if (!txId) return;
+    const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
+    if (data && data.estado !== currentTx?.estado) {
+        currentTx = data;
+        renderDeal(data);
+        if (data.estado === 'liberado') goTo('s-success');
+        if (data.estado === 'esperando_pago') goTo('s-deal');
+    }
+}, 5000);
 }
 
 function renderDeal(tx) {
