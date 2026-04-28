@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vandox Safe</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
@@ -225,7 +226,8 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <span>💡</span>
       <span id="alert-memo"><strong>Important:</strong> Include the verification code as memo/comment when sending.</span>
     </div>
-    <button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px">✅ I have sent the payment</button>
+    <div id="ton-connect-btn" style="margin-top:12px"></div>
+<button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px;display:none">✅ Ya he enviado el pago</button>
   </div>
 
   <div class="card" id="upload-card" style="display:none">
@@ -264,6 +266,10 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 </div>
 
 <script>
+  const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
+    buttonRootId: 'ton-connect-btn'
+});
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
 const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
@@ -519,12 +525,34 @@ function copyAddress() {
 }
 
 async function confirmPaid() {
-  if (!currentTx) return;
-  await db.from('transacciones').update({ estado: 'verificando_pago' }).eq('id', txId);
-  updateVaultState('verificando_pago');
-  if (tg) {
-    tg.sendData(JSON.stringify({ action: 'paid', txId: txId }));
-  }
+    if (!currentTx) return;
+    
+    const wallet = tonConnectUI.wallet;
+    if (!wallet) {
+        await tonConnectUI.openModal();
+        return;
+    }
+    
+    const total = currentTx.total_depositar || currentTx.total || 0;
+    const amountNano = Math.round(total * 1e6);
+    
+    try {
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 600,
+            messages: [
+                {
+                    address: 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac',
+                    amount: '50000000',
+                    payload: btoa(currentTx.code)
+                }
+            ]
+        };
+        await tonConnectUI.sendTransaction(transaction);
+        await db.from('transacciones').update({ estado: 'verificando_pago' }).eq('id', txId);
+        updateVaultState('verificando_pago');
+    } catch(e) {
+        console.log('Error pago:', e.message);
+    }
 }
 
 async function handleFileUpload(event) {
