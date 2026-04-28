@@ -405,7 +405,9 @@ if (userRole === 'buyer' && !data.comprador_nombre) {
   L = data.lang || L;
 
 if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
+    dealType = data.tipo;
     goTo('s-setup');
+  applyLang();
     return;
 }
 if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
