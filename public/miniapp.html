@@ -599,7 +599,8 @@ async function declarePrice() {
     if (parseFloat(data.vendedor_precio) === price) {
       const fee = price <= 50 ? 1.00 : parseFloat((price * 0.015).toFixed(2));
       const total = parseFloat((price + fee).toFixed(2));
-      await db.from('transacciones').update({ comprador_nombre: tg?.initDataUnsafe?.user?.first_name || 'Comprador' }).eq('id', txId);
+     const nombreComprador = await getNombreDeUsuario();
+await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq('id', txId);
      await db.from('transacciones').update({ comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
       currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
       renderDeal(currentTx);
