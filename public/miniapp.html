@@ -597,7 +597,7 @@ async function declarePrice() {
       return;
     }
     if (parseFloat(data.vendedor_precio) === price) {
-      const fee = price <= 50 ? 1.00 : parseFloat((price * 0.015).toFixed(2));
+      const fee = dealType === 'swap' ? 1.00 : (price <= 100 ? 1.00 : parseFloat((price * 0.015).toFixed(2)));
       const total = parseFloat((price + fee).toFixed(2));
      const nombreComprador = await getNombreDeUsuario();
 await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq('id', txId);
