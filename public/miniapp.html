@@ -384,7 +384,7 @@ async function getNombreDeUsuario() {
 }
 async function loadDeal() {
   txId = getTxIdFromUrl();
-  if (!txId) { goTo('s-error'); return; }
+  if (!txId) { goTo('s-setup'); return; }
 
   const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
   if (error || !data) { goTo('s-error'); return; }
