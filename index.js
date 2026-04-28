@@ -680,8 +680,8 @@ setInterval(async () => {
     } catch(e) { console.log('Cron error:', e.message); }
 }, 60000);
 
-setTimeout(() => {
-    bot.launch();
-}, 3000);
+app.post('/webhook', (req, res) => {
+    bot.handleUpdate(req.body, res);
+});
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
