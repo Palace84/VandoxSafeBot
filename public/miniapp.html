@@ -273,10 +273,6 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const tg = window.Telegram?.WebApp;
 if (tg) tg.ready();
-const debugEl = document.getElementById('debug-tg');
-if (debugEl) {
-    debugEl.textContent = 'initData: ' + (window.Telegram?.WebApp?.initData || 'VACIO');
-}
 var L = (navigator.language || 'en').startsWith('es') ? 'es' : 'en';
 var currentTx = null;
 var txId = null;
