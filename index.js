@@ -742,6 +742,7 @@ async function registrarWebhookTonAPI() {
         });
         const sub = await res2.json();
         console.log('Suscripcion:', JSON.stringify(sub));
+        if (sub.error) console.log('Error suscripcion:', sub.error);
     } catch(e) {
         console.log('Error webhook:', e.message);
     }
