@@ -737,7 +737,7 @@ async function registrarWebhookTonAPI() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                accounts: [{ account_id: '0:b8036cfe83b3fe19830f5f6d5599ccebb4c8257d67a2f31dbdaaaaab09a7b302' }]
+                accounts: [{ account_id: '0:ee00cefe83b3fe18618f5d7db5599cc6fb4c895fbf5e2f33fdeaab1a269ffa30' }]
             })
         });
         const sub = await res2.json();
