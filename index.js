@@ -716,15 +716,15 @@ setInterval(async () => {
 }, 60000);
 async function registrarWebhookTonAPI() {
     try {
-        const response = await fetch('https://tonapi.io/v2/websocket/accounts/transactions/subscribe', {
+        const response = await fetch('https://tonapi.io/v2/webhooks/subscribe', {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                accounts: ['UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac'],
-                webhook: 'https://vandox-bot-production.up.railway.app/ton-webhook'
+                endpoint: 'https://vandox-bot-production.up.railway.app/ton-webhook',
+                accounts: ['UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac']
             })
         });
         const data = await response.json();
