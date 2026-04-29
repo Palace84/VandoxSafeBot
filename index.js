@@ -18,7 +18,42 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 const crypto = require('crypto');
-
+app.post('/ton-webhook', async (req, res) => {
+    res.sendStatus(200);
+    try {
+        const event = req.body;
+        if (!event || !event.actions) return;
+        
+        for (const action of event.actions) {
+            if (action.type !== 'JettonTransfer') continue;
+            const transfer = action.JettonTransfer;
+            if (!transfer) continue;
+            
+            const amount = parseFloat(transfer.amount || '0') / 1e6;
+            const comment = transfer.comment || '';
+            const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+            
+            if (transfer.recipient?.address !== BOT_WALLET) continue;
+            
+            const { data: tratos } = await supabase
+                .from('transacciones')
+                .select('*')
+                .eq('estado', 'verificando_pago');
+            
+            if (!tratos) continue;
+            
+            for (const tx of tratos) {
+                const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
+                if (Math.abs(amount - totalEsperado) < 0.1 || comment.includes(tx.code)) {
+                    await liberarAutomatico(tx);
+                    break;
+                }
+            }
+        }
+    } catch(e) {
+        console.log('Webhook error:', e.message);
+    }
+});
 app.get('/user', (req, res) => {
     const initData = req.query.initData;
     if (!initData) return res.json({ user: null });
