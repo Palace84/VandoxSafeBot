@@ -728,9 +728,9 @@ async function registrarWebhookTonAPI() {
         });
         const webhook = await res1.json();
         console.log('Webhook creado:', JSON.stringify(webhook));
-        if (!webhook.id) return;
+        if (!webhook.webhook_id) return;
 
-        const res2 = await fetch('https://rt.tonapi.io/webhooks/' + webhook.id + '/account-tx/subscribe', {
+        const res2 = await fetch('https://rt.tonapi.io/webhooks/' + webhook.webhook_id + '/account-tx/subscribe', {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
