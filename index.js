@@ -20,6 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const crypto = require('crypto');
 app.post('/ton-webhook', async (req, res) => {
     res.sendStatus(200);
+    console.log('TON WEBHOOK RECIBIDO:', JSON.stringify(req.body));
     try {
         const event = req.body;
         if (!event || !event.actions) return;
