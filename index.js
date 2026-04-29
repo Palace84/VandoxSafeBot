@@ -714,7 +714,29 @@ setInterval(async () => {
         }
     } catch(e) { console.log('Cron error:', e.message); }
 }, 60000);
+async function registrarWebhookTonAPI() {
+    try {
+        const response = await fetch('https://tonapi.io/v2/websocket/accounts/transactions/subscribe', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                accounts: ['UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac'],
+                webhook: 'https://vandox-bot-production.up.railway.app/ton-webhook'
+            })
+        });
+        const data = await response.json();
+        console.log('TonAPI webhook registrado:', JSON.stringify(data));
+    } catch(e) {
+        console.log('Error registrando webhook TonAPI:', e.message);
+    }
+}
 
+setTimeout(() => {
+    registrarWebhookTonAPI();
+}, 5000);
 app.post('/webhook', (req, res) => {
     bot.handleUpdate(req.body, res);
 });
