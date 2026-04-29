@@ -716,24 +716,36 @@ setInterval(async () => {
 }, 60000);
 async function registrarWebhookTonAPI() {
     try {
-        const response = await fetch('https://tonapi.io/v2/webhooks/subscribe', {
+        const res1 = await fetch('https://rt.tonapi.io/webhooks', {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                endpoint: 'https://vandox-bot-production.up.railway.app/ton-webhook',
-                accounts: ['UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac']
+                endpoint: 'https://vandox-bot-production.up.railway.app/ton-webhook'
             })
         });
-        const data = await response.json();
-        console.log('TonAPI webhook registrado:', JSON.stringify(data));
+        const webhook = await res1.json();
+        console.log('Webhook creado:', JSON.stringify(webhook));
+        if (!webhook.id) return;
+
+        const res2 = await fetch('https://rt.tonapi.io/webhooks/' + webhook.id + '/account-tx/subscribe', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                accounts: [{ account_id: '0:b8036cfe83b3fe19830f5f6d5599ccebb4c8257d67a2f31dbdaaaaab09a7b302' }]
+            })
+        });
+        const sub = await res2.json();
+        console.log('Suscripcion:', JSON.stringify(sub));
     } catch(e) {
-        console.log('Error registrando webhook TonAPI:', e.message);
+        console.log('Error webhook:', e.message);
     }
 }
-
 setTimeout(() => {
     registrarWebhookTonAPI();
 }, 5000);
