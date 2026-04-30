@@ -516,6 +516,19 @@ if (pagoConfirmado) {
   if (isSeller) uploadCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot active';
+    } else if (estado === 'entregado') {
+    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-delivery');
+    badge.className = 'badge b-amber';
+    progress.style.width = '75%';
+    slotMoney.className = 'vslot pending';
+    moneyStatus.className = 'slot-status wait';
+    moneyStatus.textContent = t('slot-pending');
+    slotProduct.className = 'vslot filled';
+    productStatus.className = 'slot-status ok';
+    productStatus.textContent = t('slot-uploaded');
+    if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
+    document.getElementById('sd2').className = 'step-dot active';
+    document.getElementById('sd3').className = 'step-dot done';
   } else if (estado === 'liberado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
     badge.className = 'badge b-green';
