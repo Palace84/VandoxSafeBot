@@ -695,7 +695,7 @@ await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq(
     if (!txId || !currentTx) return;
     const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
     if (!data) return;
-    if (data.estado !== currentTx.estado) {
+   if (data.estado !== currentTx.estado || data.archivo_subido !== currentTx.archivo_subido || data.pago_confirmado !== currentTx.pago_confirmado) {
         currentTx = data;
         if (data.estado === 'esperando_pago') { renderDeal(data); goTo('s-deal'); }
         if (data.estado === 'liberado') goTo('s-success');
