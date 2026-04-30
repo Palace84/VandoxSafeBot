@@ -741,8 +741,8 @@ async function registrarWebhookTonAPI() {
                 accounts: [{ account_id: '0:ee00cefe83b3fe18618f5d7db5599cc6fb4c895fbf5e2f33fdeaab1a269ffa30' }]
             })
         });
-       const sub = await res2.json();
-        console.log('Suscripcion:', JSON.stringify(sub));
+       console.log('Suscripcion status:', res2.status);
+        console.log('Suscripcion ok:', res2.ok);
         if (sub.error) console.log('Error suscripcion:', sub.error);
     } catch(e) {
         console.log('Error webhook:', e.message);
