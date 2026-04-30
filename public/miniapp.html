@@ -472,7 +472,7 @@ const codeEl = document.getElementById('val-code');
  updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
 }
 
-function updateVaultState(estado) {
+function updateVaultState(estado, pagoConfirmado, archivoSubido) {
   const slotMoney = document.getElementById('slot-money');
   const slotProduct = document.getElementById('slot-product');
   const moneyStatus = document.getElementById('slot-money-status');
@@ -488,7 +488,20 @@ function updateVaultState(estado) {
   confirmCard.style.display = 'none';
   const isSeller = userRole === 'seller';
   const isBuyer = userRole === 'buyer';
-
+if (pagoConfirmado) {
+    slotMoney.className = 'vslot filled';
+    moneyStatus.className = 'slot-status ok';
+    moneyStatus.textContent = t('slot-confirmed');
+  }
+  if (archivoSubido) {
+    slotProduct.className = 'vslot filled';
+    productStatus.className = 'slot-status ok';
+    productStatus.textContent = t('slot-uploaded');
+  }
+  if (pagoConfirmado && archivoSubido) {
+    goTo('s-success');
+    return;
+  }
   if (estado === 'esperando_pago' || estado === 'esperando_quien_paga') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-pending');
     badge.className = 'badge b-amber';
