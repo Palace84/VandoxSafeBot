@@ -18,6 +18,27 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 const crypto = require('crypto');
+app.post('/liberar', async (req, res) => {
+    try {
+        const { txId } = req.body;
+        if (!txId) return res.json({ ok: false });
+        const tx = await getTx(txId);
+        if (!tx) return res.json({ ok: false });
+        if (!tx.pago_confirmado || !tx.archivo_subido) return res.json({ ok: false, motivo: 'faltan slots' });
+        if (tx.estado === 'liberado') return res.json({ ok: true, motivo: 'ya liberado' });
+        const ok = await distribuirFondos(tx);
+        await saveTx({ ...tx, estado: 'liberado' });
+        const lang = tx.lang || 'en';
+        const msg = txt(lang, 'released', { txid: txId });
+        if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+        if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+        if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
+        res.json({ ok: true, distribuido: ok });
+    } catch(e) {
+        console.log('Error liberar:', e.message);
+        res.json({ ok: false, error: e.message });
+    }
+});
 app.post('/ton-webhook', async (req, res) => {
     res.sendStatus(200);
     console.log('TON WEBHOOK RECIBIDO:', JSON.stringify(req.body));
