@@ -469,7 +469,7 @@ const codeEl = document.getElementById('val-code');
   const buyerEl = document.getElementById('val-buyer-name');
   if (buyerEl) buyerEl.textContent = tx.comprador_nombre || 'Esperando...';
   if (txIdEl) txIdEl.textContent = tx.id || '-';
-  updateVaultState(tx.estado);
+ updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
 }
 
 function updateVaultState(estado) {
