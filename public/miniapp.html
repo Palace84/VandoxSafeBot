@@ -436,6 +436,7 @@ setInterval(async () => {
     if (!txId) return;
     const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
     if (data && (data.estado !== currentTx?.estado || data.archivo_subido !== currentTx?.archivo_subido || data.pago_confirmado !== currentTx?.pago_confirmado)) {
+      console.log('Refresh - userRole:', userRole, 'archivo_subido:', data.archivo_subido);
         currentTx = data;
         renderDeal(data);
         if (data.estado === 'liberado') goTo('s-success');
