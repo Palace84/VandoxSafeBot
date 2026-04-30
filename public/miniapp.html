@@ -486,6 +486,8 @@ function updateVaultState(estado) {
   payCard.style.display = 'none';
   uploadCard.style.display = 'none';
   confirmCard.style.display = 'none';
+  const isSeller = userRole === 'seller';
+  const isBuyer = userRole === 'buyer';
 
   if (estado === 'esperando_pago' || estado === 'esperando_quien_paga') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-pending');
@@ -495,7 +497,8 @@ function updateVaultState(estado) {
     moneyStatus.className = 'slot-status wait';
     moneyStatus.textContent = t('slot-pending');
     productStatus.textContent = t('slot-pending');
-    payCard.style.display = 'block';
+    if (isBuyer) payCard.style.display = 'block';
+    if (isSeller) uploadCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
   } else if (estado === 'verificando_pago') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
@@ -504,7 +507,7 @@ function updateVaultState(estado) {
     slotMoney.className = 'vslot filled';
     moneyStatus.className = 'slot-status ok';
     moneyStatus.textContent = t('slot-confirmed');
-    uploadCard.style.display = 'block';
+  if (isSeller) uploadCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot active';
   } else if (estado === 'liberado') {
