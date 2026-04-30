@@ -585,7 +585,7 @@ async function confirmPaid() {
         };
         
         await tonConnectUI.sendTransaction(transaction);
-        await db.from('transacciones').update({ estado: 'verificando_pago' }).eq('id', txId);
+        await db.from('transacciones').update({ estado: 'verificando_pago', pago_confirmado: true }).eq('id', txId);
         updateVaultState('verificando_pago');
         
     } catch(e) {
