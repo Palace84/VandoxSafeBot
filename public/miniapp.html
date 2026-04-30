@@ -405,7 +405,9 @@ async function loadDeal() {
   currentTx = data;
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
   const myIdEl = document.getElementById('val-myid');
-userRole = (!data.vendedor_precio) ? 'seller' : 'buyer';
+const params = new URLSearchParams(window.location.search);
+const miNombre = decodeURIComponent(params.get('nombre') || '');
+userRole = (miNombre === data.vendedor_nombre) ? 'seller' : 'buyer';
 if (userRole === 'buyer' && !data.comprador_nombre) {
     const nombre = await getNombreDeUsuario();
     await db.from('transacciones').update({ comprador_nombre: nombre }).eq('id', txId);
