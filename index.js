@@ -743,6 +743,7 @@ async function registrarWebhookTonAPI() {
         });
        console.log('Suscripcion status:', res2.status);
         console.log('Suscripcion ok:', res2.ok);
+        if (res2.ok) console.log('Webhook suscrito correctamente a la hot wallet');
         if (sub.error) console.log('Error suscripcion:', sub.error);
     } catch(e) {
         console.log('Error webhook:', e.message);
