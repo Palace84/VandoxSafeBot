@@ -432,18 +432,7 @@ if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_v
 }
   renderDeal(data);
   goTo('s-deal');
-setInterval(async () => {
-    if (!txId) return;
-    const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
-  console.log('Interval check - archivo_subido:', data?.archivo_subido, 'currentTx:', currentTx?.archivo_subido);
-    if (data && (data.estado !== currentTx?.estado || data.archivo_subido !== currentTx?.archivo_subido || data.pago_confirmado !== currentTx?.pago_confirmado)) {
-      console.log('Refresh - userRole:', userRole, 'archivo_subido:', data.archivo_subido);
-        currentTx = data;
-        renderDeal(data);
-        if (data.estado === 'liberado') goTo('s-success');
-        if (data.estado === 'esperando_pago') goTo('s-deal');
-    }
-}, 5000);
+
 }
 
 function renderDeal(tx) {
