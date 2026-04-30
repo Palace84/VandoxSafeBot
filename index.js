@@ -351,7 +351,7 @@ const miniAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?tx
 ctx.replyWithMarkdown(
     txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
     Markup.inlineKeyboard([
-        [Markup.button.url('🛡️ Open Vandox Safe', miniAppUrl)]
+        [{ text: '🛡️ Open Vandox Safe', web_app: { url: miniAppUrl } }]
     ])
 );
 });
