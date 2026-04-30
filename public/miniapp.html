@@ -272,9 +272,10 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     buttonRootId: 'ton-connect-btn'
 });
   tonConnectUI.onStatusChange(wallet => {
-    if (wallet) {
-        document.getElementById('btn-paid').style.display = 'block';
-        document.getElementById('btn-paid').textContent = '💳 Pagar ahora';
+    const btn = document.getElementById('btn-paid');
+    if (btn) {
+        btn.style.display = 'block';
+        btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
     }
 });
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
