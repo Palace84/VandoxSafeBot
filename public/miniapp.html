@@ -406,7 +406,7 @@ async function loadDeal() {
   const myId = tg?.initDataUnsafe?.user?.id?.toString();
   const myIdEl = document.getElementById('val-myid');
 const params = new URLSearchParams(window.location.search);
-userRole = (!data.comprador_precio && data.vendedor_precio) ? 'buyer' : (!data.vendedor_precio ? 'seller' : 'buyer');
+userRole = (!data.vendedor_precio) ? 'seller' : 'buyer';
   console.log('userRole asignado:', userRole);
 if (userRole === 'buyer' && !data.comprador_nombre) {
     const nombre = await getNombreDeUsuario();
