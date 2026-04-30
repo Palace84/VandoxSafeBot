@@ -611,7 +611,8 @@ async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   document.getElementById('upload-text').textContent = '✅ ' + file.name;
- await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name, archivo_subido: true }).eq('id', txId);
+const { error } = await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name, archivo_subido: true }).eq('id', txId);
+  console.log('Update archivo:', error ? error.message : 'OK', 'txId:', txId);
   updateVaultState('entregado');
   document.getElementById('upload-card').style.display = 'none';
   document.getElementById('confirm-card').style.display = 'block';
