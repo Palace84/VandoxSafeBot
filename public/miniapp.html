@@ -511,7 +511,7 @@ if (pagoConfirmado) {
     moneyStatus.className = 'slot-status wait';
     moneyStatus.textContent = t('slot-pending');
     productStatus.textContent = t('slot-pending');
-    if (isBuyer) payCard.style.display = 'block';
+    if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     if (isSeller) uploadCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
   } else if (estado === 'verificando_pago') {
