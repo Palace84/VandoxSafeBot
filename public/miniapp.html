@@ -378,7 +378,6 @@ function goTo(id) {
 }
 
 function getTxIdFromUrl() {
-  document.getElementById('debug-url').textContent = 'URL: ' + window.location.href + ' | startParam: ' + (tg?.initDataUnsafe?.start_param || 'null');
   const params = new URLSearchParams(window.location.search);
   if (params.get('txid')) return params.get('txid');
   if (params.get('startapp')) return params.get('startapp');
