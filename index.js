@@ -483,7 +483,8 @@ async function liberarAutomatico(tx) {
     if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
     if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
     if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 *Pago verificado en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
-   
+   await notifyAdmin('✅ *Pago verificado y liberado automáticamente*\nTX: ' + tx.id + '\nImporte: $' + (tx.total_depositar || tx.total));
+}
 async function enviarUSDT(destinatario, cantidad) {
     try {
         const key = await mnemonicToPrivateKey(WALLET_MNEMONIC.split(' '));
