@@ -315,9 +315,11 @@ const miniAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?tx
     return ctx.reply(
         '🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'),
         {
-  reply_markup: {
+reply_markup: {
                 inline_keyboard: [
-                    [{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: miniAppUrl } }]
+                    [{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: miniAppUrl } }],
+                    [{ text: '📊 ' + (lang === 'es' ? 'Ver tarifas' : 'View pricing'), callback_data: 'tarifas' },
+                     { text: '❓ ' + (lang === 'es' ? 'Ayuda' : 'Help'), callback_data: 'ayuda' }]
                 ]
             }
         }
