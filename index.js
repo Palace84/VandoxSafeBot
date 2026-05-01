@@ -313,12 +313,10 @@ if (tx.estado === 'esperando_comprador_precio') {
     const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
 const miniAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
 const webAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
+    const filaBotones = [{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: webAppUrl } }];
+    const teclado = [filaBotones];
     return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: webAppUrl } }]
-        ]
-      }
+      reply_markup: { inline_keyboard: teclado }
     });
 }
 });
