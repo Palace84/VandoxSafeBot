@@ -318,6 +318,7 @@ if (tx.estado === 'esperando_comprador_precio') {
         lang, 
         code, 
         tipo: 'pendiente' 
+        const miniAppUrl = 'https://t.me/VandoxSafeBot/app?startapp=' + txId;
     });
    
     return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
