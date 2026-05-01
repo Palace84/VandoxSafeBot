@@ -323,7 +323,7 @@ if (tx.estado === 'esperando_comprador_precio') {
     return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
         reply_markup: {
             inline_keyboard: [
-                [ { text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: webAppUrl } } ]
+                [ { text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), url: miniAppUrl } ]
             ]
         }
     });
