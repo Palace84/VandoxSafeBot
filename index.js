@@ -349,7 +349,7 @@ bot.action('start_sale', async (ctx) => {
     await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'esperando_vendedor_precio', lang, code, tipo: 'venta' });
 
 const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
-const miniAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
+const miniAppUrl = 'https://t.me/VandoxSafeBot/app?startapp=' + txId;
 ctx.replyWithMarkdown(
     txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
     Markup.inlineKeyboard([
