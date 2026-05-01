@@ -475,7 +475,7 @@ const codeEl = document.getElementById('val-code');
  updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
 }
 
-function updateVaultState(estado, pagoConfirmado, archivoSubido) {
+async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
   const slotMoney = document.getElementById('slot-money');
   const slotProduct = document.getElementById('slot-product');
   const moneyStatus = document.getElementById('slot-money-status');
