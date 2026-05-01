@@ -319,7 +319,7 @@ if (tx.estado === 'esperando_comprador_precio') {
         code, 
         tipo: 'pendiente' 
     });
-    const webAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
+   
     return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
         reply_markup: {
             inline_keyboard: [
