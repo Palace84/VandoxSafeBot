@@ -409,6 +409,7 @@ async function loadDeal() {
   if (!txId) { goTo('s-setup'); return; }
 
   const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
+  console.log('txId:', txId, 'error:', error?.message, 'data:', !!data);
   if (error || !data) { goTo('s-error'); return; }
 
   currentTx = data;
