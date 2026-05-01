@@ -312,14 +312,11 @@ if (tx.estado === 'esperando_comprador_precio') {
    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), vendedor_telegram_id: userId, vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor', estado: 'nuevo', lang, code, tipo: 'pendiente' });
     const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
 const miniAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
-return ctx.reply(
-        '🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'),
-        Markup.inlineKeyboard([
-            [Markup.button.webApp('🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId)],
-            [Markup.button.callback('📊 ' + (lang === 'es' ? 'Ver tarifas' : 'View pricing'), 'tarifas'),
-             Markup.button.callback('❓ ' + (lang === 'es' ? 'Ayuda' : 'Help'), 'ayuda')]
-        ])
-    );
+return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), 
+  Markup.inlineKeyboard([
+    [Markup.button.webApp('🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId)]
+  ])
+);
 }
 });
 
