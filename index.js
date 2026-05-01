@@ -309,18 +309,26 @@ if (tx.estado === 'esperando_comprador_precio') {
  if (isTrigger) {
     const txId = genTxId();
     const code = genCode();
-   await saveTx({ id: txId, grupo_id: String(ctx.chat.id), vendedor_telegram_id: userId, vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor', estado: 'nuevo', lang, code, tipo: 'pendiente' });
-    const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
-const miniAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
-const webAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
-    const filaBotones = [{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: webAppUrl } }];
-    const teclado = [filaBotones];
+    await saveTx({ 
+        id: txId, 
+        grupo_id: String(ctx.chat.id), 
+        vendedor_telegram_id: userId, 
+        vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor', 
+        estado: 'nuevo', 
+        lang, 
+        code, 
+        tipo: 'pendiente' 
+    });
+    const webAppUrl = 'https://vandox-bot-production.up.railway.app/miniapp.html?txid=' + txId;
     return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
-      reply_markup: { inline_keyboard: teclado }
+        reply_markup: {
+            inline_keyboard: [
+                [ { text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), web_app: { url: webAppUrl } } ]
+            ]
+        }
     });
 }
 });
-
 // BOTON: INICIAR TRATO
 bot.action('start_deal', async (ctx) => {
     await ctx.answerCbQuery();
@@ -467,93 +475,6 @@ bot.action('swap_private', (ctx) => {
 });
 // VERIFICACION AUTOMATICA ON-CHAIN
 // VERIFICACION AUTOMATICA USDT TON
-async function verificarPagoUSDT(tx) {
-    try {
-        const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
-        if (!totalEsperado) return false;
-
-        const CONTRACT = process.env.CONTRACT_ADDRESS;
-        const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-        
-        const url = 'https://tonapi.io/v2/accounts/' + CONTRACT + '/jettons/' + USDT_MASTER + '/history?limit=20';
-        const response = await fetch(url, {
-            headers: { 'Accept': 'application/json' }
-        });
-        
-        if (!response.ok) return false;
-        const data = await response.json();
-        if (!data.events) return false;
-
-        const ahora = Math.floor(Date.now() / 1000);
-        const ventana = 7200;
-
-        for (const event of data.events) {
-            if ((ahora - event.timestamp) > ventana) continue;
-            for (const action of event.actions) {
-                if (action.type !== 'JettonTransfer') continue;
-                const amount = parseFloat(action.JettonTransfer?.amount || '0') / 1e6;
-                const comment = action.JettonTransfer?.comment || '';
-                if (Math.abs(amount - totalEsperado) < 0.05 || comment.includes(tx.code)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    } catch (e) {
-        console.log('Error verificacion USDT:', e.message);
-        return false;
-    }
-}
-
-async function iniciarVerificacionActiva(txId) {
-    let intentos = 0;
-    const maxIntentos = 24; // 24 x 30seg = 12 minutos rapido
-    const maxIntentosSlow = 48; // luego 48 x 2min = 96 minutos
-
-    const tx = await getTx(txId);
-    if (!tx) return;
-
-    // Fase rapida: comprobar cada 30 segundos durante 12 minutos
-    const intervalRapido = setInterval(async () => {
-        intentos++;
-        const txActual = await getTx(txId);
-        if (!txActual || txActual.estado !== 'verificando_pago') {
-            clearInterval(intervalRapido);
-            return;
-        }
-
-        const pagado = await verificarPagoUSDT(txActual);
-        if (pagado) {
-            clearInterval(intervalRapido);
-            await liberarAutomatico(txActual);
-            return;
-        }
-
-        if (intentos >= maxIntentos) {
-            clearInterval(intervalRapido);
-            // Fase lenta: comprobar cada 2 minutos durante 2 horas
-            let intentosSlow = 0;
-            const intervalLento = setInterval(async () => {
-                intentosSlow++;
-                const txActual2 = await getTx(txId);
-                if (!txActual2 || txActual2.estado !== 'verificando_pago') {
-                    clearInterval(intervalLento);
-                    return;
-                }
-                const pagado2 = await verificarPagoUSDT(txActual2);
-                if (pagado2) {
-                    clearInterval(intervalLento);
-                    await liberarAutomatico(txActual2);
-                    return;
-                }
-                if (intentosSlow >= maxIntentosSlow) {
-                    clearInterval(intervalLento);
-                    await notifyAdmin('⚠️ Pago no detectado después de 2 horas\nTX: ' + txId + '\nRevisa manualmente.\n\n✅ /liberar ' + txId);
-                }
-            }, 120000);
-        }
-    }, 30000);
-}
 
 async function liberarAutomatico(tx) {
     await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
@@ -562,8 +483,7 @@ async function liberarAutomatico(tx) {
     if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
     if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
     if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 *Pago verificado en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
-    await notifyAdmin('✅ *Pago verificado y liberado automáticamente*\nTX: ' + tx.id + '\nImporte: $' + (tx.total_depositar || tx.total));
-}
+   
 async function enviarUSDT(destinatario, cantidad) {
     try {
         const key = await mnemonicToPrivateKey(WALLET_MNEMONIC.split(' '));
@@ -769,5 +689,11 @@ setTimeout(() => {
 app.post('/webhook', (req, res) => {
     bot.handleUpdate(req.body, res);
 });
+bot.launch().then(() => {
+    console.log('Bot Vandox iniciado con éxito');
+}).catch((err) => {
+    console.error('Error al lanzar el bot:', err);
+});
+
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
