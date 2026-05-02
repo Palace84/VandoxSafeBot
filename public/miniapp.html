@@ -505,6 +505,8 @@ async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
   payCard.style.display = 'none';
   uploadCard.style.display = 'none';
   confirmCard.style.display = 'none';
+  const sellerMsg = document.getElementById('seller-waiting-msg');
+  if (sellerMsg) sellerMsg.style.display = 'none';
   const isSeller = userRole === 'seller';
   const isBuyer = userRole === 'buyer';
 if (pagoConfirmado) {
