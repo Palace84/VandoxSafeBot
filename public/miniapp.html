@@ -654,7 +654,7 @@ const { error } = await db.from('transacciones').update({ estado: 'entregado', a
     if (sellerMsg) sellerMsg.style.display = 'block';
   }
   document.getElementById('upload-card').style.display = 'none';
-  document.getElementById('confirm-card').style.display = 'block';
+  if (userRole !== 'seller') document.getElementById('confirm-card').style.display = 'block';
   document.getElementById('slot-product').className = 'vslot filled';
   document.getElementById('slot-product-status').className = 'slot-status ok';
   document.getElementById('slot-product-status').textContent = t('slot-uploaded');
