@@ -646,7 +646,7 @@ async function handleFileUpload(event) {
   document.getElementById('upload-text').textContent = '✅ ' + file.name;
 const { error } = await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name, archivo_subido: true }).eq('id', txId);
   console.log('Update archivo:', error ? error.message : 'OK', 'txId:', txId);
-  updateVaultState('entregado');
+  updateVaultState('entregado', currentTx?.pago_confirmado, true);
   if (userRole === 'seller') {
     const sellerMsg = document.getElementById('seller-waiting-msg');
     if (sellerMsg) sellerMsg.style.display = 'block';
