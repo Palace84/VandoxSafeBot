@@ -551,6 +551,7 @@ if (pagoConfirmado) {
     productStatus.textContent = t('slot-pending');
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     if (isSeller) uploadCard.style.display = 'block';
+    if (isSeller) document.getElementById('seller-connect-card').style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
   } else if (estado === 'verificando_pago') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
@@ -560,6 +561,7 @@ if (pagoConfirmado) {
     moneyStatus.className = 'slot-status ok';
     moneyStatus.textContent = t('slot-confirmed');
   if (isSeller) uploadCard.style.display = 'block';
+    if (isSeller) document.getElementById('seller-connect-card').style.display = 'block';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot active';
     } else if (estado === 'entregado') {
