@@ -289,6 +289,18 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
         btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
     }
 });
+  const sellerTonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
+    buttonRootId: 'seller-ton-connect-btn'
+});
+
+sellerTonConnectUI.onStatusChange(async wallet => {
+    if (wallet && txId && userRole === 'seller') {
+        const address = wallet.account.address;
+        await db.from('transacciones').update({ vendedor_wallet: address }).eq('id', txId);
+        console.log('Wallet vendedor guardada:', address);
+    }
+});
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
 const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
