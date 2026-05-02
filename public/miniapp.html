@@ -245,6 +245,12 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB · All formats</div>
     </div>
   </div>
+  <div class="card" id="seller-waiting-msg" style="display:none">
+  <div class="alert alert-success">
+    <span>✅</span>
+    <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
+  </div>
+</div>
 
   <div class="card" id="confirm-card" style="display:none">
     <div class="card-title" id="lbl-confirm-title">Review & release</div>
@@ -544,6 +550,10 @@ if (pagoConfirmado) {
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
     document.getElementById('sd3').className = 'step-dot done';
+    if (isSeller) {
+        const sellerMsg = document.getElementById('seller-waiting-msg');
+        if (sellerMsg) sellerMsg.style.display = 'block';
+    }
   } else if (estado === 'liberado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
     badge.className = 'badge b-green';
