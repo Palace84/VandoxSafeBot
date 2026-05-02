@@ -289,6 +289,17 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
     buttonRootId: 'ton-connect-btn'
 });
+  const sellerConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
+    buttonRootId: 'seller-connect-btn'
+});
+
+sellerConnectUI.onStatusChange(async wallet => {
+    if (wallet && userRole === 'seller' && txId) {
+        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
+        console.log('Wallet vendedor guardada:', wallet.account.address);
+    }
+});
 tonConnectUI.onStatusChange(async wallet => {
     const btn = document.getElementById('btn-paid');
     if (btn) {
