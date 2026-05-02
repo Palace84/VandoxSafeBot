@@ -284,11 +284,14 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
     buttonRootId: 'ton-connect-btn'
 });
-  tonConnectUI.onStatusChange(wallet => {
+ tonConnectUI.onStatusChange(async wallet => {
     const btn = document.getElementById('btn-paid');
     if (btn) {
         btn.style.display = 'block';
         btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
+    }
+    if (wallet && userRole === 'seller' && txId) {
+        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
     }
 });
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
