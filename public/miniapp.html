@@ -559,7 +559,7 @@ if (pagoConfirmado) {
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
     document.getElementById('sd3').className = 'step-dot done';
-    if (isSeller) {
+   if (isSeller && userRole === 'seller') {
         const sellerMsg = document.getElementById('seller-waiting-msg');
         if (sellerMsg) sellerMsg.style.display = 'block';
     }
