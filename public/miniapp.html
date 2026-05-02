@@ -232,10 +232,6 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 <button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px;display:none">✅ Ya he enviado el pago</button>
   </div>
 
-  <div class="card" id="seller-connect-card" style="display:none">
-  <div class="card-title">Conecta tu wallet para recibir el pago</div>
-  <div id="seller-connect-btn" style="margin-top:8px"></div>
-</div>
   <div class="card" id="upload-card" style="display:none">
     <div class="card-title" id="lbl-upload-title">Upload your product</div>
     <div class="alert alert-success" style="margin-bottom:12px">
@@ -250,13 +246,6 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     </div>
   </div>
   <div class="card" id="seller-waiting-msg" style="display:none">
-  <div class="alert alert-success" style="margin-bottom:12px">
-    <span>✅</span>
-    <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
-  </div>
-  <div class="card-title">Conecta tu wallet para recibir el pago</div>
-  <div id="ton-connect-btn"></div>
-</div>
   <div class="alert alert-success">
     <span>✅</span>
     <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
@@ -289,25 +278,11 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
     buttonRootId: 'ton-connect-btn'
 });
-  const sellerConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
-    buttonRootId: 'seller-connect-btn'
-});
-
-sellerConnectUI.onStatusChange(async wallet => {
-    if (wallet && userRole === 'seller' && txId) {
-        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
-        console.log('Wallet vendedor guardada:', wallet.account.address);
-    }
-});
-tonConnectUI.onStatusChange(async wallet => {
+  tonConnectUI.onStatusChange(wallet => {
     const btn = document.getElementById('btn-paid');
     if (btn) {
         btn.style.display = 'block';
         btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
-    }
-    if (wallet && userRole === 'seller' && txId) {
-        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
     }
 });
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
@@ -551,7 +526,6 @@ if (pagoConfirmado) {
     productStatus.textContent = t('slot-pending');
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     if (isSeller) uploadCard.style.display = 'block';
-    if (isSeller) document.getElementById('seller-connect-card').style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
   } else if (estado === 'verificando_pago') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
@@ -561,7 +535,6 @@ if (pagoConfirmado) {
     moneyStatus.className = 'slot-status ok';
     moneyStatus.textContent = t('slot-confirmed');
   if (isSeller) uploadCard.style.display = 'block';
-    if (isSeller) document.getElementById('seller-connect-card').style.display = 'block';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot active';
     } else if (estado === 'entregado') {
