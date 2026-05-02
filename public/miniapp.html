@@ -647,6 +647,10 @@ async function handleFileUpload(event) {
 const { error } = await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name, archivo_subido: true }).eq('id', txId);
   console.log('Update archivo:', error ? error.message : 'OK', 'txId:', txId);
   updateVaultState('entregado');
+  if (userRole === 'seller') {
+    const sellerMsg = document.getElementById('seller-waiting-msg');
+    if (sellerMsg) sellerMsg.style.display = 'block';
+  }
   document.getElementById('upload-card').style.display = 'none';
   document.getElementById('confirm-card').style.display = 'block';
   document.getElementById('slot-product').className = 'vslot filled';
