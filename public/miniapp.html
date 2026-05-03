@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vandox Safe</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <script src="https://unpkg.com/tonweb@0.0.62/dist/tonweb.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+<script src="https://unpkg.com/tonweb@0.0.62/dist/tonweb.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
@@ -59,14 +59,10 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 .btn-pay{width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e;margin-top:auto}
 .btn-secondary{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #2d3748;background:#1a2235;color:#f1f5f9}
 .btn-danger{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;margin-top:8px}
-.ton-connect{width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:none;background:#0088cc;color:white;display:flex;align-items:center;justify-content:center;gap:8px}
 .connected-wallet{background:#1a2235;border:1px solid #00c896;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between}
 .connected-info{font-size:12px;color:#94a3b8}
 .connected-addr{font-size:13px;font-weight:600;color:#00c896}
 .disconnect-btn{font-size:11px;color:#ef4444;cursor:pointer;background:none;border:none}
-.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.mode-btn{padding:10px;border-radius:10px;text-align:center;cursor:pointer;border:1px solid #2d3748;background:#0a0f1e;font-size:13px;color:#94a3b8}
-.mode-btn.active{border-color:#00c896;color:#00c896;background:rgba(0,200,150,0.08)}
 .loading{text-align:center;padding:3rem;color:#94a3b8}
 .loading-icon{font-size:32px;margin-bottom:1rem;animation:spin 1s linear infinite}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
@@ -83,6 +79,12 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 .alert-warn{background:rgba(245,158,11,0.12);border:1px solid #f59e0b;color:#94a3b8}
 .alert-success{background:rgba(0,200,150,0.12);border:1px solid #00c896;color:#94a3b8}
 .alert strong{color:#f1f5f9}
+/* Seller wallet button override styles */
+#seller-wallet-btn tc-root,
+#seller-wallet-btn button {
+  width: 100% !important;
+  border-radius: 12px !important;
+}
 </style>
 </head>
 <body>
@@ -113,6 +115,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <div class="error-sub" id="error-sub">This deal may have expired or doesn't exist.</div>
   </div>
 </div>
+
 <!-- SETUP -->
 <div class="screen" id="s-setup">
   <div class="card">
@@ -160,9 +163,11 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <button onclick="declarePrice()" style="width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e;margin-top:12px" id="btn-declare">Confirmar precio</button>
   </div>
 </div>
+
 <!-- MAIN DEAL -->
 <div class="screen" id="s-deal">
   <button onclick="goTo('s-price')" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;padding:8px 1rem;text-align:left">← Volver</button>
+
   <div class="card">
     <div class="deal-amount" id="deal-amount">$0.00</div>
     <div class="deal-desc" id="deal-desc">Loading...</div>
@@ -213,6 +218,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <div class="info-row"><span class="info-label" id="lbl-mode">Mode</span><span id="val-mode">-</span></div>
   </div>
 
+  <!-- CARD PAGO (COMPRADOR) -->
   <div class="card" id="payment-card">
     <div class="card-title" id="lbl-pay-title">Send payment</div>
     <div class="alert alert-warn" style="margin-bottom:12px">
@@ -228,10 +234,12 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <span>💡</span>
       <span id="alert-memo"><strong>Important:</strong> Include the verification code as memo/comment when sending.</span>
     </div>
+    <!-- Boton TonConnect COMPRADOR -->
     <div id="ton-connect-btn" style="margin-top:12px"></div>
-<button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px;display:none">✅ Ya he enviado el pago</button>
+    <button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px;display:none">✅ Ya he enviado el pago</button>
   </div>
 
+  <!-- CARD SUBIR PRODUCTO (VENDEDOR) -->
   <div class="card" id="upload-card" style="display:none">
     <div class="card-title" id="lbl-upload-title">Upload your product</div>
     <div class="alert alert-success" style="margin-bottom:12px">
@@ -245,16 +253,25 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB · All formats</div>
     </div>
   </div>
+
+  <!-- CARD VENDEDOR ESPERANDO PAGO — con div para TonConnect del VENDEDOR -->
   <div id="seller-waiting-msg" style="display:none" class="card">
-  <div class="alert alert-success">
-    <span>✅</span>
-    <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
+    <div class="alert alert-success" style="margin-bottom:12px">
+      <span>✅</span>
+      <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
+    </div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">
+      Conecta tu wallet TON para recibir el pago automáticamente cuando el comprador confirme.
+    </div>
+    <!-- Boton TonConnect VENDEDOR — este div debe existir ANTES de que el script inicialice sellerConnectUI -->
+    <div id="seller-wallet-btn" style="margin-top:4px"></div>
+    <div id="seller-wallet-status" style="margin-top:8px;display:none" class="alert alert-success">
+      <span>✅</span>
+      <span id="seller-wallet-addr-text">Wallet conectada. Recibirás el pago al completarse el trato.</span>
+    </div>
   </div>
-  <button class="btn-pay" onclick="abrirWalletVendedor()" style="margin-top:8px">🔗 Conectar wallet para cobrar</button>
-</div>
-  
 
-
+  <!-- CARD CONFIRMAR Y LIBERAR (COMPRADOR) -->
   <div class="card" id="confirm-card" style="display:none">
     <div class="card-title" id="lbl-confirm-title">Review & release</div>
     <div class="alert alert-success" style="margin-bottom:12px">
@@ -277,34 +294,72 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 </div>
 
 <script>
-  const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
-    buttonRootId: 'ton-connect-btn'
-});
- tonConnectUI.onStatusChange(async wallet => {
-    const btn = document.getElementById('btn-paid');
-    if (btn) {
-        btn.style.display = 'block';
-        btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
-    }
-    if (wallet && userRole === 'seller' && txId) {
-        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
-    }
-});
-const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
-const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+var SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
+var BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+var MANIFEST_URL = 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json';
 
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+var db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const tg = window.Telegram?.WebApp;
+// ─── TELEGRAM ─────────────────────────────────────────────────────────────────
+var tg = window.Telegram && window.Telegram.WebApp;
 if (tg) tg.ready();
+
+// ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 var L = (navigator.language || 'en').startsWith('es') ? 'es' : 'en';
 var currentTx = null;
 var txId = null;
+var userRole = null;
+var dealType = null;
 
-const T = {
+// ─── TON CONNECT — COMPRADOR ──────────────────────────────────────────────────
+// El div #ton-connect-btn ya existe en el HTML arriba. Lo inicializamos aqui.
+var tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+  manifestUrl: MANIFEST_URL,
+  buttonRootId: 'ton-connect-btn'
+});
+
+tonConnectUI.onStatusChange(function(wallet) {
+  var btn = document.getElementById('btn-paid');
+  if (btn) {
+    btn.style.display = 'block';
+    btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
+  }
+});
+
+// ─── TON CONNECT — VENDEDOR ───────────────────────────────────────────────────
+// El div #seller-wallet-btn ya existe en el HTML arriba.
+// Esta instancia es INDEPENDIENTE de la del comprador y no crea conflicto.
+var sellerConnectUI = new TON_CONNECT_UI.TonConnectUI({
+  manifestUrl: MANIFEST_URL,
+  buttonRootId: 'seller-wallet-btn'
+});
+
+sellerConnectUI.onStatusChange(function(wallet) {
+  if (!wallet) return;
+  var addr = wallet.account.address;
+
+  // Guardar vendedor_wallet en Supabase
+  if (txId) {
+    db.from('transacciones').update({ vendedor_wallet: addr }).eq('id', txId).then(function(res) {
+      console.log('vendedor_wallet guardado:', addr, res.error ? res.error.message : 'OK');
+    });
+  }
+
+  // Mostrar confirmacion visual
+  var statusEl = document.getElementById('seller-wallet-status');
+  var addrEl = document.getElementById('seller-wallet-addr-text');
+  if (statusEl) statusEl.style.display = 'flex';
+  if (addrEl) {
+    var short = addr.slice(0, 6) + '...' + addr.slice(-4);
+    addrEl.textContent = 'Wallet conectada (' + short + '). Recibirás el pago al completarse el trato.';
+  }
+});
+
+// ─── TRADUCCIONES ─────────────────────────────────────────────────────────────
+var T = {
   en: {
     'lang-sub': 'Secure Escrow',
     'loading-text': 'Loading deal...',
@@ -320,27 +375,27 @@ const T = {
     'lbl-pay-title': 'Send payment',
     'alert-network': '<strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.',
     'lbl-wallet': 'Vandox Vault Address',
-    'copy-btn': '📋 Copy address',
+    'copy-btn': 'Copy address',
     'alert-memo': '<strong>Important:</strong> Include verification code as memo/comment.',
-    'btn-paid': '✅ I have sent the payment',
+    'btn-paid': 'I have sent the payment',
     'lbl-upload-title': 'Upload your product',
-   'alert-paid-confirm': '<strong>Upload your product.</strong> The buyer will receive it once payment is confirmed.',
+    'alert-paid-confirm': '<strong>Upload your product.</strong> The buyer will receive it once payment is confirmed.',
     'upload-text': 'Tap to upload file',
     'upload-sub': 'Max 50MB · All formats',
     'lbl-confirm-title': 'Review & release',
     'alert-product-ready': '<strong>Product uploaded.</strong> Review carefully before releasing.',
-    'btn-release': '✅ Confirm & release funds',
-    'btn-dispute': '⚠️ Open dispute',
+    'btn-release': 'Confirm & release funds',
+    'btn-dispute': 'Open dispute',
     'success-title': 'Deal complete!',
     'success-sub': 'Funds released. Recorded on blockchain. Permanent.',
-    'slot-pending': 'Pending', 'slot-confirmed': 'Confirmed ✓', 'slot-uploaded': 'Uploaded ✓',
+    'slot-pending': 'Pending', 'slot-confirmed': 'Confirmed', 'slot-uploaded': 'Uploaded',
     'deal-badge-pending': 'Awaiting payment',
     'deal-badge-verifying': 'Verifying payment',
     'deal-badge-delivery': 'Awaiting delivery',
     'deal-badge-reviewing': 'Reviewing',
-    'deal-badge-released': 'Released ✓',
-    'mode-express': '⚡ Express',
-    'mode-protected': '🛡️ Protected',
+    'deal-badge-released': 'Released',
+    'mode-express': 'Express',
+    'mode-protected': 'Protected'
   },
   es: {
     'lang-sub': 'Custodia Segura',
@@ -357,181 +412,189 @@ const T = {
     'lbl-pay-title': 'Enviar pago',
     'alert-network': '<strong>Solo red TON.</strong> Envía USDT por TON. Red incorrecta = fondos perdidos.',
     'lbl-wallet': 'Dirección de la bóveda Vandox',
-    'copy-btn': '📋 Copiar dirección',
+    'copy-btn': 'Copiar dirección',
     'alert-memo': '<strong>Importante:</strong> Incluye el código como memo/comentario al enviar.',
-    'btn-paid': '✅ Ya he enviado el pago',
+    'btn-paid': 'Ya he enviado el pago',
     'lbl-upload-title': 'Sube tu producto',
     'alert-paid-confirm': '<strong>Sube tu producto.</strong> El comprador recibirá el archivo cuando confirme el pago.',
     'upload-text': 'Toca para subir archivo',
     'upload-sub': 'Máx 50MB · Todos los formatos',
     'lbl-confirm-title': 'Revisar y liberar',
     'alert-product-ready': '<strong>Producto subido.</strong> Revísalo antes de liberar los fondos.',
-    'btn-release': '✅ Confirmar y liberar fondos',
-    'btn-dispute': '⚠️ Abrir disputa',
-    'success-title': '¡Trato completado!',
+    'btn-release': 'Confirmar y liberar fondos',
+    'btn-dispute': 'Abrir disputa',
+    'success-title': 'Trato completado!',
     'success-sub': 'Fondos liberados. Registrado en blockchain. Permanente.',
-    'slot-pending': 'Pendiente', 'slot-confirmed': 'Confirmado ✓', 'slot-uploaded': 'Subido ✓',
+    'slot-pending': 'Pendiente', 'slot-confirmed': 'Confirmado', 'slot-uploaded': 'Subido',
     'deal-badge-pending': 'Esperando pago',
     'deal-badge-verifying': 'Verificando pago',
     'deal-badge-delivery': 'Esperando entrega',
     'deal-badge-reviewing': 'Revisando',
-    'deal-badge-released': 'Liberado ✓',
-    'mode-express': '⚡ Express',
-    'mode-protected': '🛡️ Protegido',
+    'deal-badge-released': 'Liberado',
+    'mode-express': 'Express',
+    'mode-protected': 'Protegido'
   }
 };
 
-function t(key) { return T[L][key] || T['en'][key] || key; }
-function applyLang() { Object.keys(T[L]).forEach(k => { var el = document.getElementById(k); if (el) el.innerHTML = t(k); }); }
+function t(key) { return (T[L] && T[L][key]) || (T['en'] && T['en'][key]) || key; }
+
+function applyLang() {
+  Object.keys(T[L]).forEach(function(k) {
+    var el = document.getElementById(k);
+    if (el) el.innerHTML = t(k);
+  });
+}
 
 function goTo(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
 }
 
 function getTxIdFromUrl() {
-  const params = new URLSearchParams(window.location.search);
+  var params = new URLSearchParams(window.location.search);
   if (params.get('txid')) return params.get('txid');
   if (params.get('startapp')) return params.get('startapp');
   if (params.get('tgWebAppStartParam')) return params.get('tgWebAppStartParam');
-  if (tg?.initData) {
-    const initDataParams = new URLSearchParams(tg.initData);
-    const startParam = initDataParams.get('start_param');
+  if (tg && tg.initData) {
+    var initDataParams = new URLSearchParams(tg.initData);
+    var startParam = initDataParams.get('start_param');
     if (startParam) return startParam;
   }
-  const tgData = tg?.initDataUnsafe?.start_param;
+  var tgData = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
   if (tgData) return tgData;
   return null;
 }
 
 async function getNombreDeUsuario() {
-    try {
-        const initData = window.Telegram?.WebApp?.initData;
-        if (!initData) return 'Usuario';
-        const resp = await fetch('https://vandox-bot-production.up.railway.app/user?initData=' + encodeURIComponent(initData));
-        const data = await resp.json();
-        if (data.user) return data.user.first_name || data.user.username || 'Usuario';
-        return 'Usuario';
-    } catch(e) {
-        return 'Usuario';
-    }
+  try {
+    var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+    if (!initData) return 'Usuario';
+    var resp = await fetch('https://vandox-bot-production.up.railway.app/user?initData=' + encodeURIComponent(initData));
+    var data = await resp.json();
+    if (data.user) return data.user.first_name || data.user.username || 'Usuario';
+    return 'Usuario';
+  } catch(e) {
+    return 'Usuario';
+  }
 }
+
 async function loadDeal() {
   txId = getTxIdFromUrl();
   if (!txId) { goTo('s-setup'); return; }
 
-  const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
-  console.log('txId:', txId, 'error:', error?.message, 'data:', !!data);
+  var res = await db.from('transacciones').select('*').eq('id', txId).single();
+  var data = res.data;
+  var error = res.error;
   if (error || !data) { goTo('s-error'); return; }
 
   currentTx = data;
-  const myId = tg?.initDataUnsafe?.user?.id?.toString();
-  const myIdEl = document.getElementById('val-myid');
-const params = new URLSearchParams(window.location.search);
-const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
-userRole = (myTgId && myTgId === data.vendedor_telegram_id) ? 'seller' : 'buyer';
-  console.log('userRole asignado:', userRole);
-if (userRole === 'buyer' && !data.comprador_nombre) {
-    const nombre = await getNombreDeUsuario();
+  var myTgId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id && tg.initDataUnsafe.user.id.toString();
+  userRole = (myTgId && myTgId === data.vendedor_telegram_id) ? 'seller' : 'buyer';
+  console.log('userRole:', userRole, 'myTgId:', myTgId);
+
+  if (userRole === 'buyer' && !data.comprador_nombre) {
+    var nombre = await getNombreDeUsuario();
     await db.from('transacciones').update({ comprador_nombre: nombre }).eq('id', txId);
-}
+  }
+
   L = data.lang || L;
 
-if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
+  if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
     dealType = data.tipo;
     goTo('s-setup');
-  applyLang();
+    applyLang();
     return;
-}
-if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
+  }
+  if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
     dealType = data.tipo;
-    if (userRole === 'seller') {
-        selectRole('seller');
-    } else {
-        selectRole('buyer');
-    }
+    if (userRole === 'seller') { selectRole('seller'); } else { selectRole('buyer'); }
     goTo('s-price');
     return;
-}
+  }
+
   renderDeal(data);
   goTo('s-deal');
-
 }
 
 function renderDeal(tx) {
-  const amount = tx.comprador_precio || 0;
-  const fee = tx.fee || 0;
-  const total = tx.total_depositar || tx.total || (amount + fee);
+  var amount = tx.comprador_precio || 0;
+  var fee = tx.fee || 0;
+  var total = tx.total_depositar || tx.total || (amount + fee);
 
   document.getElementById('deal-amount').textContent = '$' + parseFloat(total).toFixed(2) + ' USDT';
   document.getElementById('deal-desc').textContent = tx.descripcion || (L === 'es' ? 'Producto digital' : 'Digital product');
   document.getElementById('val-amount').textContent = '$' + parseFloat(amount).toFixed(2);
   document.getElementById('val-fee').textContent = '$' + parseFloat(fee).toFixed(2);
   document.getElementById('val-total').textContent = '$' + parseFloat(total).toFixed(2);
-  document.getElementById('val-code').textContent = tx.code || '-';
   document.getElementById('vault-address').textContent = BOT_WALLET;
-  document.getElementById('val-mode').innerHTML = '<span class="badge b-blue">' + t('mode-express') + '</span>';
-const codeEl = document.getElementById('val-code');
+  document.getElementById('val-mode').innerHTML = '<span class="badge b-blue">⚡ ' + t('mode-express') + '</span>';
+
+  var codeEl = document.getElementById('val-code');
   if (codeEl) {
     codeEl.textContent = tx.code || '-';
     codeEl.style.fontSize = '20px';
     codeEl.style.color = '#00c896';
     codeEl.style.fontWeight = '700';
   }
-  
-  const txIdEl = document.getElementById('val-txid');
-  const vendorEl = document.getElementById('val-vendor');
-  if (vendorEl) vendorEl.textContent = tx.vendedor_nombre || 'Vendedor';
-  const buyerEl = document.getElementById('val-buyer-name');
-  if (buyerEl) buyerEl.textContent = tx.comprador_nombre || 'Esperando...';
+
+  var txIdEl = document.getElementById('val-txid');
   if (txIdEl) txIdEl.textContent = tx.id || '-';
- updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
+
+  var vendorEl = document.getElementById('val-vendor');
+  if (vendorEl) vendorEl.textContent = tx.vendedor_nombre || 'Vendedor';
+
+  var buyerEl = document.getElementById('val-buyer-name');
+  if (buyerEl) buyerEl.textContent = tx.comprador_nombre || 'Esperando...';
+
+  updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
 }
 
 async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
-  console.log('updateVaultState:', estado, 'pago:', pagoConfirmado, 'archivo:', archivoSubido, 'role:', userRole);
-  const slotMoney = document.getElementById('slot-money');
-  const slotProduct = document.getElementById('slot-product');
-  const moneyStatus = document.getElementById('slot-money-status');
-  const productStatus = document.getElementById('slot-product-status');
-  const progress = document.getElementById('progress-fill');
-  const badge = document.getElementById('deal-badge');
-  const payCard = document.getElementById('payment-card');
-  const uploadCard = document.getElementById('upload-card');
-  const confirmCard = document.getElementById('confirm-card');
+  var slotMoney = document.getElementById('slot-money');
+  var slotProduct = document.getElementById('slot-product');
+  var moneyStatus = document.getElementById('slot-money-status');
+  var productStatus = document.getElementById('slot-product-status');
+  var progress = document.getElementById('progress-fill');
+  var badge = document.getElementById('deal-badge');
+  var payCard = document.getElementById('payment-card');
+  var uploadCard = document.getElementById('upload-card');
+  var confirmCard = document.getElementById('confirm-card');
+  var sellerMsg = document.getElementById('seller-waiting-msg');
 
   payCard.style.display = 'none';
   uploadCard.style.display = 'none';
   confirmCard.style.display = 'none';
-  const sellerMsg = document.getElementById('seller-waiting-msg');
   if (sellerMsg) sellerMsg.style.display = 'none';
-  const isSeller = userRole === 'seller';
-  const isBuyer = userRole === 'buyer';
-if (pagoConfirmado) {
+
+  var isSeller = userRole === 'seller';
+  var isBuyer = userRole === 'buyer';
+
+  if (pagoConfirmado) {
     slotMoney.className = 'vslot filled';
     moneyStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed');
+    moneyStatus.textContent = t('slot-confirmed') + ' ✓';
   }
   if (archivoSubido) {
     slotProduct.className = 'vslot filled';
     productStatus.className = 'slot-status ok';
-    productStatus.textContent = t('slot-uploaded');
+    productStatus.textContent = t('slot-uploaded') + ' ✓';
   }
-  if (archivoSubido && currentTx) {
-    const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
-    const esVendedor = myTgId && myTgId === currentTx.vendedor_telegram_id;
-    const sellerMsg = document.getElementById('seller-waiting-msg');
-    if (sellerMsg) sellerMsg.style.display = esVendedor ? 'block' : 'none';
+
+  // Mostrar bloque vendedor esperando con su boton de wallet
+  if (archivoSubido && isSeller && !pagoConfirmado) {
+    if (sellerMsg) sellerMsg.style.display = 'block';
   }
+
   if (pagoConfirmado && archivoSubido) {
     await fetch('https://vandox-bot-production.up.railway.app/liberar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txId: txId })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txId: txId })
     });
     goTo('s-success');
     return;
   }
+
   if (estado === 'esperando_pago' || estado === 'esperando_quien_paga') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-pending');
     badge.className = 'badge b-amber';
@@ -543,17 +606,19 @@ if (pagoConfirmado) {
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     if (isSeller) uploadCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
+
   } else if (estado === 'verificando_pago') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
     badge.className = 'badge b-amber';
     progress.style.width = '50%';
     slotMoney.className = 'vslot filled';
     moneyStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed');
-  if (isSeller) uploadCard.style.display = 'block';
+    moneyStatus.textContent = t('slot-confirmed') + ' ✓';
+    if (isSeller) uploadCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot active';
-    } else if (estado === 'entregado') {
+
+  } else if (estado === 'entregado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-delivery');
     badge.className = 'badge b-amber';
     progress.style.width = '75%';
@@ -562,11 +627,15 @@ if (pagoConfirmado) {
     moneyStatus.textContent = t('slot-pending');
     slotProduct.className = 'vslot filled';
     productStatus.className = 'slot-status ok';
-    productStatus.textContent = t('slot-uploaded');
+    productStatus.textContent = t('slot-uploaded') + ' ✓';
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
+    // Vendedor ya subio pero espera pago — mostrar bloque wallet vendedor
+    if (isSeller) {
+      if (sellerMsg) sellerMsg.style.display = 'block';
+    }
     document.getElementById('sd2').className = 'step-dot active';
     document.getElementById('sd3').className = 'step-dot done';
-  
+
   } else if (estado === 'liberado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
     badge.className = 'badge b-green';
@@ -575,8 +644,8 @@ if (pagoConfirmado) {
     slotProduct.className = 'vslot filled';
     moneyStatus.className = 'slot-status ok';
     productStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed');
-    productStatus.textContent = t('slot-uploaded');
+    moneyStatus.textContent = t('slot-confirmed') + ' ✓';
+    productStatus.textContent = t('slot-uploaded') + ' ✓';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot done';
     document.getElementById('sd4').className = 'step-dot done';
@@ -585,86 +654,98 @@ if (pagoConfirmado) {
 }
 
 function copyAddress() {
-  navigator.clipboard && navigator.clipboard.writeText(BOT_WALLET);
-  const btn = document.getElementById('copy-btn');
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = BOT_WALLET;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  } catch(e) {}
+  var btn = document.getElementById('copy-btn');
   btn.textContent = L === 'es' ? '✅ Copiado!' : '✅ Copied!';
-  setTimeout(() => { btn.textContent = t('copy-btn'); }, 2000);
+  setTimeout(function() { btn.textContent = '📋 ' + t('copy-btn'); }, 2000);
 }
 
 async function confirmPaid() {
-    if (!currentTx) return;
-    
-    const wallet = tonConnectUI.wallet;
-    if (!wallet) {
-        await tonConnectUI.openModal();
-        return;
-    }
-    
-    const total = parseFloat(currentTx.total_depositar || currentTx.total || 0);
-    const amountNano = BigInt(Math.round(total * 1e6)).toString();
-    
-    const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-    const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
-    
-    try {
-        const tonweb = new TonWeb();
-        const jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
-            address: USDT_MASTER
-        });
-        
-        const walletAddress = wallet.account.address;
-        const jettonWalletAddress = await jettonMinter.getJettonWalletAddress(
-            new TonWeb.utils.Address(walletAddress)
-        );
-        
-        const forwardPayload = new TonWeb.boc.Cell();
-        forwardPayload.bits.writeUint(0, 32);
-        forwardPayload.bits.writeString(currentTx.code);
-        
-        const body = new TonWeb.boc.Cell();
-        body.bits.writeUint(0xf8a7ea5, 32);
-        body.bits.writeUint(0, 64);
-        body.bits.writeCoins(amountNano);
-        body.bits.writeAddress(new TonWeb.utils.Address(BOT_WALLET));
-        body.bits.writeAddress(new TonWeb.utils.Address(walletAddress));
-        body.bits.writeBit(false);
-        body.bits.writeCoins(TonWeb.utils.toNano('0.01'));
-        body.bits.writeBit(true);
-        body.refs.push(forwardPayload);
-        
-        const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 600,
-            messages: [{
-                address: jettonWalletAddress.toString(true, true, true),
-                amount: '60000000',
-                payload: TonWeb.utils.bytesToBase64(await body.toBoc())
-            }]
-        };
-        
-        await tonConnectUI.sendTransaction(transaction);
-        await db.from('transacciones').update({ estado: 'verificando_pago', pago_confirmado: true }).eq('id', txId);
-        updateVaultState('verificando_pago');
-        
-    } catch(e) {
-        console.log('Error pago:', e.message);
-        alert('Error: ' + e.message);
-    }
+  if (!currentTx) return;
+
+  var wallet = tonConnectUI.wallet;
+  if (!wallet) {
+    await tonConnectUI.openModal();
+    return;
+  }
+
+  var total = parseFloat(currentTx.total_depositar || currentTx.total || 0);
+  var amountNano = BigInt(Math.round(total * 1e6)).toString();
+
+  var USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+
+  try {
+    var tonweb = new TonWeb();
+    var jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
+      address: USDT_MASTER
+    });
+
+    var walletAddress = wallet.account.address;
+    var jettonWalletAddress = await jettonMinter.getJettonWalletAddress(
+      new TonWeb.utils.Address(walletAddress)
+    );
+
+    var forwardPayload = new TonWeb.boc.Cell();
+    forwardPayload.bits.writeUint(0, 32);
+    forwardPayload.bits.writeString(currentTx.code);
+
+    var body = new TonWeb.boc.Cell();
+    body.bits.writeUint(0xf8a7ea5, 32);
+    body.bits.writeUint(0, 64);
+    body.bits.writeCoins(amountNano);
+    body.bits.writeAddress(new TonWeb.utils.Address(BOT_WALLET));
+    body.bits.writeAddress(new TonWeb.utils.Address(walletAddress));
+    body.bits.writeBit(false);
+    body.bits.writeCoins(TonWeb.utils.toNano('0.01'));
+    body.bits.writeBit(true);
+    body.refs.push(forwardPayload);
+
+    var transaction = {
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [{
+        address: jettonWalletAddress.toString(true, true, true),
+        amount: '60000000',
+        payload: TonWeb.utils.bytesToBase64(await body.toBoc())
+      }]
+    };
+
+    await tonConnectUI.sendTransaction(transaction);
+    await db.from('transacciones').update({ estado: 'verificando_pago', pago_confirmado: true }).eq('id', txId);
+    updateVaultState('verificando_pago', true, currentTx.archivo_subido);
+
+  } catch(e) {
+    console.log('Error pago:', e.message);
+    alert('Error: ' + e.message);
+  }
 }
 
 async function handleFileUpload(event) {
-  const file = event.target.files[0];
+  var file = event.target.files[0];
   if (!file) return;
   document.getElementById('upload-text').textContent = '✅ ' + file.name;
-const { error } = await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name, archivo_subido: true }).eq('id', txId);
-  console.log('Update archivo:', error ? error.message : 'OK', 'txId:', txId);
-  currentTx = { ...currentTx, archivo_subido: true, estado: 'entregado' };
+  var res = await db.from('transacciones').update({
+    estado: 'entregado',
+    archivo_nombre: file.name,
+    archivo_subido: true
+  }).eq('id', txId);
+  console.log('Update archivo:', res.error ? res.error.message : 'OK');
+  currentTx = Object.assign({}, currentTx, { archivo_subido: true, estado: 'entregado' });
   renderDeal(currentTx);
-
   document.getElementById('upload-card').style.display = 'none';
   if (userRole !== 'seller') document.getElementById('confirm-card').style.display = 'block';
   document.getElementById('slot-product').className = 'vslot filled';
   document.getElementById('slot-product-status').className = 'slot-status ok';
-  document.getElementById('slot-product-status').textContent = t('slot-uploaded');
+  document.getElementById('slot-product-status').textContent = t('slot-uploaded') + ' ✓';
   document.getElementById('progress-fill').style.width = '75%';
   document.getElementById('sd3').className = 'step-dot done';
   document.getElementById('sd4').className = 'step-dot active';
@@ -681,20 +762,18 @@ async function openDispute() {
   if (tg) tg.sendData(JSON.stringify({ action: 'dispute', txId: txId }));
   alert(L === 'es' ? 'Disputa abierta. Vandox revisará el caso.' : 'Dispute opened. Vandox will review the case.');
 }
-var userRole = null;
-var dealType = null;
 
 function selectType(type) {
   dealType = type;
-  db.from('transacciones').update({ tipo: type, estado: 'configurando' }).eq('id', txId).then(() => {
+  db.from('transacciones').update({ tipo: type, estado: 'configurando' }).eq('id', txId).then(function() {
     goTo('s-price');
   });
 }
 
 function selectRole(role) {
   userRole = role;
-  const sellerBtn = document.getElementById('btn-seller');
-  const buyerBtn = document.getElementById('btn-buyer');
+  var sellerBtn = document.getElementById('btn-seller');
+  var buyerBtn = document.getElementById('btn-buyer');
   if (role === 'seller') {
     sellerBtn.style.borderColor = '#00c896';
     sellerBtn.style.background = 'rgba(0,200,150,0.1)';
@@ -708,10 +787,12 @@ function selectRole(role) {
   }
   document.getElementById('price-form').style.display = 'block';
 }
+
 async function declarePrice() {
-  const price = parseFloat(document.getElementById('price-input').value);
+  var price = parseFloat(document.getElementById('price-input').value);
   if (isNaN(price) || price <= 0) { alert('Introduce un precio válido'); return; }
-  const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
+  var res = await db.from('transacciones').select('*').eq('id', txId).single();
+  var data = res.data;
   if (userRole === 'seller') {
     await db.from('transacciones').update({ vendedor_precio: price, estado: 'esperando_comprador_precio' }).eq('id', txId);
     document.getElementById('price-feedback').style.display = 'block';
@@ -720,43 +801,53 @@ async function declarePrice() {
   } else {
     if (!data.vendedor_precio) {
       document.getElementById('price-feedback').style.display = 'block';
-      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">⏳ El vendedor aún no ha declarado el precio.</div>';
+      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">El vendedor aún no ha declarado el precio.</div>';
       return;
     }
     if (parseFloat(data.vendedor_precio) === price) {
-      const fee = dealType === 'swap' ? 1.00 : (price <= 100 ? 1.00 : parseFloat((price * 0.015).toFixed(2)));
-      const total = parseFloat((price + fee).toFixed(2));
-     const nombreComprador = await getNombreDeUsuario();
-await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq('id', txId);
-     await db.from('transacciones').update({ comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
-      currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
+      var fee = dealType === 'swap' ? 1.00 : (price <= 100 ? 1.00 : parseFloat((price * 0.015).toFixed(2)));
+      var total = parseFloat((price + fee).toFixed(2));
+      var nombreComprador = await getNombreDeUsuario();
+      await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq('id', txId);
+      await db.from('transacciones').update({
+        comprador_precio: price,
+        fee: fee,
+        total_depositar: total,
+        estado: 'esperando_pago'
+      }).eq('id', txId);
+      currentTx = Object.assign({}, data, { comprador_precio: price, fee: fee, total_depositar: total, estado: 'esperando_pago' });
       renderDeal(currentTx);
       goTo('s-deal');
     } else {
       document.getElementById('price-feedback').style.display = 'block';
-      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">❌ No coincide. El vendedor declaró $' + parseFloat(data.vendedor_precio).toFixed(2) + '. Corrígelo.</div>';
+      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">No coincide. El vendedor declaró $' + parseFloat(data.vendedor_precio).toFixed(2) + '. Corrígelo.</div>';
     }
   }
 }
-  setInterval(async () => {
-    if (!txId || !currentTx) return;
-    const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
-    if (!data) return;
-   if (data.estado !== currentTx.estado || data.archivo_subido !== currentTx.archivo_subido || data.pago_confirmado !== currentTx.pago_confirmado) {
-        currentTx = data;
-     renderDeal(data);
-        if (data.estado === 'esperando_pago') { renderDeal(data); goTo('s-deal'); }
-        if (data.estado === 'liberado') goTo('s-success');
-        if (data.estado === 'esperando_comprador_precio') {
-            dealType = data.tipo;
-            goTo('s-price');
-        }
+
+// ─── POLLING TIEMPO REAL ──────────────────────────────────────────────────────
+setInterval(async function() {
+  if (!txId || !currentTx) return;
+  var res = await db.from('transacciones').select('*').eq('id', txId).single();
+  if (!res.data) return;
+  var data = res.data;
+  if (
+    data.estado !== currentTx.estado ||
+    data.archivo_subido !== currentTx.archivo_subido ||
+    data.pago_confirmado !== currentTx.pago_confirmado
+  ) {
+    currentTx = data;
+    renderDeal(data);
+    if (data.estado === 'esperando_pago') { renderDeal(data); goTo('s-deal'); }
+    if (data.estado === 'liberado') goTo('s-success');
+    if (data.estado === 'esperando_comprador_precio') {
+      dealType = data.tipo;
+      goTo('s-price');
     }
+  }
 }, 5000);
-  function abrirWalletVendedor() {
-    console.log('Abriendo wallet vendedor...');
-    tonConnectUI.openModal();
-}
+
+// ─── ARRANQUE ─────────────────────────────────────────────────────────────────
 applyLang();
 loadDeal();
 </script>
