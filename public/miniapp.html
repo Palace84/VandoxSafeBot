@@ -73,14 +73,18 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 .alert-warn{background:rgba(245,158,11,0.12);border:1px solid #f59e0b;color:#94a3b8}
 .alert-success{background:rgba(0,200,150,0.12);border:1px solid #00c896;color:#94a3b8}
 .alert strong{color:#f1f5f9}
+.wallet-connected-badge{background:rgba(0,200,150,0.08);border:1px solid #00c896;border-radius:10px;padding:10px 14px;font-size:12px;color:#00c896;margin-top:8px;display:none}
 </style>
 </head>
 <body>
 
-<!-- SDK de TonConnect renderiza aqui — fuera de pantalla, siempre en el DOM.
-     Nuestros botones hacen .click() sobre el boton del SDK para que Telegram
-     procese correctamente el deeplink hacia la wallet app en movil. -->
-<div id="tc-sdk-root" style="position:fixed;top:-9999px;left:-9999px;width:200px;height:60px;overflow:visible;z-index:-1"></div>
+<!--
+  TONCONNECT SDK ROOT — fuera de pantalla, siempre en el DOM.
+  El SDK renderiza aqui su boton interno que maneja deeplinks en Telegram movil.
+  Nuestros botones llaman a clickSdkBtn() que hace .click() sobre el boton del SDK.
+  width/height no cero para que el boton sea clickable programaticamente.
+-->
+<div id="tc-sdk-root" style="position:fixed;top:-9999px;left:-9999px;width:200px;height:60px;overflow:visible"></div>
 
 <div class="header">
   <div class="logo">&#128737;</div>
@@ -107,7 +111,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
   </div>
 </div>
 
-<!-- SETUP -->
+<!-- SETUP tipo de trato -->
 <div class="screen" id="s-setup">
   <div class="card">
     <div class="deal-amount" style="font-size:22px">Que tipo de trato?</div>
@@ -176,7 +180,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
           <div class="slot-label" id="lbl-payment">Payment</div>
           <div class="slot-status wait" id="slot-money-status">Pending</div>
         </div>
-        <div class="vdiv">x</div>
+        <div class="vdiv">&#8644;</div>
         <div class="vslot" id="slot-product">
           <div class="slot-icon">&#128230;</div>
           <div class="slot-label" id="lbl-product">Product</div>
@@ -207,7 +211,11 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <div class="info-row"><span class="info-label" id="lbl-mode">Mode</span><span id="val-mode">-</span></div>
   </div>
 
-  <!-- CARD COMPRADOR: pagar -->
+  <!--
+    CARD COMPRADOR: enviar pago
+    El comprador conecta su wallet aqui y paga.
+    Este flujo ya funcionaba — se mantiene igual.
+  -->
   <div class="card" id="payment-card" style="display:none">
     <div class="card-title" id="lbl-pay-title">Send payment</div>
     <div class="alert alert-warn" style="margin-bottom:12px">
@@ -223,49 +231,72 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <span>i</span>
       <span id="alert-memo"><strong>Important:</strong> Include the verification code as memo/comment when sending.</span>
     </div>
-    <!-- Boton comprador: llama al SDK via proxy -->
-    <button class="btn-ton" id="btn-buyer-connect" onclick="triggerTonConnect('buyer')">Conectar wallet y pagar</button>
-    <button class="btn-main" id="btn-paid" onclick="confirmPaid()" style="display:none">Pagar ahora</button>
+    <!-- Paso 1 comprador: conectar wallet -->
+    <button class="btn-ton" id="btn-buyer-connect" onclick="buyerConnect()">&#128279; Conectar wallet TON</button>
+    <!-- Paso 2 comprador: aparece tras conectar -->
+    <button class="btn-main" id="btn-paid" onclick="confirmPaid()" style="display:none">&#128179; Pagar ahora</button>
   </div>
 
-  <!-- CARD VENDEDOR: subir producto -->
+  <!--
+    CARD VENDEDOR: subir producto + conectar wallet para cobrar
+    AMBAS cosas en la misma pantalla para que el vendedor lo tenga todo claro
+    desde el principio. Primero conecta wallet, luego sube producto (o al reves).
+  -->
   <div class="card" id="upload-card" style="display:none">
-    <div class="card-title" id="lbl-upload-title">Upload your product</div>
-    <div class="alert alert-success" style="margin-bottom:12px">
-      <span>OK</span>
-      <span id="alert-paid-confirm"><strong>Payment confirmed.</strong> Now upload your digital product.</span>
+    <div class="card-title" id="lbl-upload-title">Tu entrega</div>
+
+    <!-- Seccion 1: conectar wallet del vendedor -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">PASO 1 — Conecta tu wallet para cobrar</div>
+      <!-- Boton visible. Llama a clickSdkBtn() que dispara el boton del SDK fuera de pantalla -->
+      <button class="btn-ton" id="btn-seller-connect" onclick="sellerConnect()">&#128279; Conectar wallet TON</button>
+      <!-- Confirmacion que aparece tras conectar -->
+      <div id="seller-wallet-badge" class="wallet-connected-badge">
+        &#9989; Wallet conectada: <span id="seller-wallet-short"></span>
+      </div>
     </div>
-    <input type="file" id="file-input" style="display:none" onchange="handleFileUpload(event)">
-    <div style="background:#0a0f1e;border:1px dashed #2d3748;border-radius:12px;padding:2rem;text-align:center;cursor:pointer" onclick="document.getElementById('file-input').click()">
-      <div style="font-size:28px;margin-bottom:8px">&#128193;</div>
-      <div style="font-size:14px;color:#94a3b8" id="upload-text">Tap to upload file</div>
-      <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB - All formats</div>
+
+    <div style="border-top:1px solid #2d3748;padding-top:16px">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">PASO 2 — Sube tu producto digital</div>
+      <div class="alert alert-success" style="margin-bottom:12px" id="alert-paid-confirm">
+        <span>&#9989;</span>
+        <span><strong>Sube tu producto.</strong> El comprador lo recibira cuando confirme el pago.</span>
+      </div>
+      <input type="file" id="file-input" style="display:none" onchange="handleFileUpload(event)">
+      <div style="background:#0a0f1e;border:1px dashed #2d3748;border-radius:12px;padding:2rem;text-align:center;cursor:pointer" onclick="document.getElementById('file-input').click()">
+        <div style="font-size:28px;margin-bottom:8px">&#128193;</div>
+        <div style="font-size:14px;color:#94a3b8" id="upload-text">Toca para subir archivo</div>
+        <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB - Todos los formatos</div>
+      </div>
     </div>
   </div>
 
-  <!-- CARD VENDEDOR: esperando pago tras subir producto -->
+  <!--
+    CARD VENDEDOR: producto ya subido, esperando pago.
+    Muestra el estado pero ya no necesita boton de wallet (ya se conecto arriba).
+  -->
   <div class="card" id="seller-waiting-msg" style="display:none">
-    <div class="alert alert-success" style="margin-bottom:12px">
-      <span>OK</span>
+    <div class="alert alert-success" style="margin-bottom:8px">
+      <span>&#9989;</span>
       <span><strong>Producto en boveda.</strong> Esperando el pago del comprador.</span>
     </div>
-    <!-- Boton vendedor: llama al SDK via proxy -->
-    <button class="btn-ton" id="btn-seller-connect" onclick="triggerTonConnect('seller')">Conectar wallet para cobrar</button>
-    <div id="seller-wallet-ok" class="alert alert-success" style="display:none;margin-top:8px">
-      <span>OK</span>
-      <span id="seller-wallet-ok-text">Wallet conectada. Recibiras el pago automaticamente.</span>
+    <div id="seller-waiting-wallet-ok" style="display:none" class="alert alert-success">
+      <span>&#9989;</span>
+      <span id="seller-waiting-wallet-text">Wallet conectada. Recibiras el pago automaticamente.</span>
     </div>
+    <!-- Si por algun motivo el vendedor recarga y aun no tiene wallet conectada -->
+    <button class="btn-ton" id="btn-seller-connect-2" onclick="sellerConnect()" style="display:none">&#128279; Conectar wallet TON</button>
   </div>
 
   <!-- CARD COMPRADOR: revisar y liberar -->
   <div class="card" id="confirm-card" style="display:none">
     <div class="card-title" id="lbl-confirm-title">Review and release</div>
     <div class="alert alert-success" style="margin-bottom:12px">
-      <span>OK</span>
+      <span>&#128230;</span>
       <span id="alert-product-ready"><strong>Product uploaded.</strong> Review carefully before releasing funds.</span>
     </div>
-    <button class="btn-main" onclick="releaseFunds()" id="btn-release">Confirm and release funds</button>
-    <button class="btn-danger" onclick="openDispute()" id="btn-dispute">Open dispute</button>
+    <button class="btn-main" onclick="releaseFunds()" id="btn-release">&#9989; Confirm and release funds</button>
+    <button class="btn-danger" onclick="openDispute()" id="btn-dispute">&#9888; Open dispute</button>
   </div>
 </div>
 
@@ -294,71 +325,110 @@ var currentTx = null;
 var txId = null;
 var userRole = null;
 var dealType = null;
-var pendingPay = false;
+var pendingBuyerPay = false;
+var sellerWalletConnected = false;
+var listenForWallet = false;  // Solo activamos el listener DESPUES de disconnect()
 
-// ─── UNA SOLA INSTANCIA DE TON CONNECT ────────────────────────────────────────
-// buttonRootId apunta a un div fuera de pantalla (top:-9999px).
-// El SDK renderiza su boton ahi y maneja correctamente los deeplinks en Telegram movil.
-// Nuestros botones visibles hacen .click() sobre el boton del SDK (triggerTonConnect).
+// ─── TON CONNECT — UNA SOLA INSTANCIA ────────────────────────────────────────
 var tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
   manifestUrl: MANIFEST_URL,
   buttonRootId: 'tc-sdk-root'
 });
 
-// Un solo listener. Actua diferente segun el rol en el momento de la conexion.
+// Limpiar cualquier sesion guardada de carga anterior.
+// Esto evita que onStatusChange dispare con una wallet ficticia/de otra sesion.
+tonConnectUI.disconnect().then(function() {
+  listenForWallet = true;
+  console.log('TonConnect: sesion limpiada, listo para conectar');
+}).catch(function() {
+  listenForWallet = true;
+});
+
+// Listener unico. Solo actua cuando listenForWallet es true (post-disconnect).
 tonConnectUI.onStatusChange(function(wallet) {
+  if (!listenForWallet) return;
   if (!wallet) return;
+
   var addr = wallet.account.address;
+  var short = addr.slice(0, 6) + '...' + addr.slice(-4);
 
   if (userRole === 'seller') {
+    sellerWalletConnected = true;
+
+    // Guardar en Supabase
     if (txId) {
       db.from('transacciones').update({ vendedor_wallet: addr }).eq('id', txId).then(function(res) {
         console.log('vendedor_wallet guardado:', res.error ? res.error.message : 'OK');
       });
     }
+
+    // Actualizar UI en upload-card
     var btnSC = document.getElementById('btn-seller-connect');
+    var badge = document.getElementById('seller-wallet-badge');
+    var shortEl = document.getElementById('seller-wallet-short');
     if (btnSC) btnSC.style.display = 'none';
-    var okEl = document.getElementById('seller-wallet-ok');
-    var okTxt = document.getElementById('seller-wallet-ok-text');
-    if (okEl) okEl.style.display = 'flex';
-    if (okTxt) {
-      var short = addr.slice(0, 6) + '...' + addr.slice(-4);
-      okTxt.textContent = 'Wallet conectada (' + short + '). Recibiras el pago automaticamente.';
-    }
+    if (badge) badge.style.display = 'block';
+    if (shortEl) shortEl.textContent = short;
+
+    // Actualizar UI en seller-waiting-msg (si ya subio el producto)
+    var btnSC2 = document.getElementById('btn-seller-connect-2');
+    var okMsg = document.getElementById('seller-waiting-wallet-ok');
+    var okTxt = document.getElementById('seller-waiting-wallet-text');
+    if (btnSC2) btnSC2.style.display = 'none';
+    if (okMsg) okMsg.style.display = 'flex';
+    if (okTxt) okTxt.textContent = 'Wallet conectada (' + short + '). Recibiras el pago automaticamente.';
 
   } else if (userRole === 'buyer') {
+    // Comprador conecto: mostrar boton de pagar
     var btnBC = document.getElementById('btn-buyer-connect');
     var btnPay = document.getElementById('btn-paid');
     if (btnBC) btnBC.style.display = 'none';
     if (btnPay) btnPay.style.display = 'block';
-    if (pendingPay) {
-      pendingPay = false;
+    if (pendingBuyerPay) {
+      pendingBuyerPay = false;
       confirmPaid();
     }
   }
 });
 
-// ─── PROXY AL BOTON DEL SDK ───────────────────────────────────────────────────
-// Busca el boton que el SDK renderizo en #tc-sdk-root y hace .click() sobre el.
-// Esto garantiza que Telegram procese el deeplink correctamente en movil.
-function triggerTonConnect(role) {
-  // Si ya hay wallet conectada y es comprador, ir directo a pagar
-  if (role === 'buyer' && tonConnectUI.wallet) {
-    confirmPaid();
-    return;
+// ─── CLICK EN BOTON DEL SDK ───────────────────────────────────────────────────
+// El SDK renderiza un boton en #tc-sdk-root. Este boton maneja correctamente
+// los deeplinks en Telegram movil (usa tg.openLink internamente).
+// Buscamos ese boton con reintentos porque puede tardar en renderizarse.
+function clickSdkBtn(onNotFound) {
+  var attempts = 0;
+  function tryClick() {
+    var btn = document.querySelector('#tc-sdk-root button');
+    if (btn) {
+      console.log('SDK button encontrado, disparando click');
+      btn.click();
+    } else if (attempts < 30) {  // hasta 3 segundos de espera
+      attempts++;
+      setTimeout(tryClick, 100);
+    } else {
+      console.log('SDK button no encontrado tras 3s, usando openModal fallback');
+      if (onNotFound) onNotFound();
+      else tonConnectUI.openModal();
+    }
   }
-  // Intentar click en el boton del SDK (el SDK lo renderiza dentro de #tc-sdk-root)
-  var sdkBtn = document.querySelector('#tc-sdk-root button');
-  if (sdkBtn) {
-    console.log('Disparando click en boton SDK TonConnect');
-    sdkBtn.click();
+  tryClick();
+}
+
+function sellerConnect() {
+  clickSdkBtn();
+}
+
+function buyerConnect() {
+  if (tonConnectUI.wallet) {
+    // Ya conectado: ir directo a pagar
+    var btnBC = document.getElementById('btn-buyer-connect');
+    var btnPay = document.getElementById('btn-paid');
+    if (btnBC) btnBC.style.display = 'none';
+    if (btnPay) btnPay.style.display = 'block';
   } else {
-    // Fallback: openModal directo (funciona en web, puede fallar en movil Telegram)
-    console.log('Boton SDK no encontrado, usando openModal()');
-    tonConnectUI.openModal();
+    pendingBuyerPay = true;
+    clickSdkBtn();
   }
-  // Flag para comprador: cuando conecte la wallet, lanzar pago automaticamente
-  if (role === 'buyer') pendingPay = true;
 }
 
 // ─── TRADUCCIONES ─────────────────────────────────────────────────────────────
@@ -372,8 +442,7 @@ var T = {
     'alert-network':'<strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.',
     'lbl-wallet':'Vandox Vault Address','copy-btn':'Copy address',
     'alert-memo':'<strong>Important:</strong> Include verification code as memo/comment.',
-    'lbl-upload-title':'Upload your product',
-    'alert-paid-confirm':'<strong>Payment confirmed.</strong> Now upload your digital product.',
+    'lbl-upload-title':'Your delivery',
     'upload-text':'Tap to upload file','upload-sub':'Max 50MB - All formats',
     'lbl-confirm-title':'Review and release',
     'alert-product-ready':'<strong>Product uploaded.</strong> Review carefully before releasing.',
@@ -390,9 +459,8 @@ var T = {
     'lbl-pay-title':'Enviar pago',
     'alert-network':'<strong>Solo red TON.</strong> Envia USDT por TON. Red incorrecta = fondos perdidos.',
     'lbl-wallet':'Direccion de la boveda Vandox','copy-btn':'Copiar direccion',
-    'alert-memo':'<strong>Importante:</strong> Incluye el codigo como memo/comentario al enviar.',
-    'lbl-upload-title':'Sube tu producto',
-    'alert-paid-confirm':'<strong>Pago confirmado.</strong> Ahora sube tu producto digital.',
+    'alert-memo':'<strong>Importante:</strong> Incluye el codigo como memo/comentario.',
+    'lbl-upload-title':'Tu entrega',
     'upload-text':'Toca para subir archivo','upload-sub':'Max 50MB - Todos los formatos',
     'lbl-confirm-title':'Revisar y liberar',
     'alert-product-ready':'<strong>Producto subido.</strong> Revisalo antes de liberar los fondos.',
@@ -406,11 +474,7 @@ var T = {
 function t(key) { return (T[L] && T[L][key]) || (T['en'] && T['en'][key]) || key; }
 function applyLang() { Object.keys(T[L]).forEach(function(k){ var el=document.getElementById(k); if(el) el.innerHTML=t(k); }); }
 function goTo(id) { document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');}); document.getElementById(id).classList.add('active'); }
-
-function getActiveScreenId() {
-  var active = document.querySelector('.screen.active');
-  return active ? active.id : '';
-}
+function getActiveScreenId() { var a=document.querySelector('.screen.active'); return a?a.id:''; }
 
 function getTxIdFromUrl() {
   var params = new URLSearchParams(window.location.search);
@@ -486,20 +550,27 @@ async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
   var productStatus = document.getElementById('slot-product-status');
   var progress = document.getElementById('progress-fill');
   var badge = document.getElementById('deal-badge');
+
   document.getElementById('payment-card').style.display = 'none';
   document.getElementById('upload-card').style.display = 'none';
   document.getElementById('confirm-card').style.display = 'none';
   document.getElementById('seller-waiting-msg').style.display = 'none';
+
   var isSeller = userRole === 'seller';
   var isBuyer = userRole === 'buyer';
+
   if (pagoConfirmado) {
-    slotMoney.className = 'vslot filled'; moneyStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed') + ' OK';
+    slotMoney.className = 'vslot filled';
+    moneyStatus.className = 'slot-status ok';
+    moneyStatus.textContent = t('slot-confirmed') + ' &#10003;';
   }
   if (archivoSubido) {
-    slotProduct.className = 'vslot filled'; productStatus.className = 'slot-status ok';
-    productStatus.textContent = t('slot-uploaded') + ' OK';
+    slotProduct.className = 'vslot filled';
+    productStatus.className = 'slot-status ok';
+    productStatus.textContent = t('slot-uploaded') + ' &#10003;';
   }
+
+  // Si ambos slots llenos: liberar
   if (pagoConfirmado && archivoSubido) {
     await fetch('https://vandox-bot-production.up.railway.app/liberar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -507,6 +578,7 @@ async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
     });
     goTo('s-success'); return;
   }
+
   if (estado === 'esperando_pago' || estado === 'esperando_quien_paga') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-pending');
     badge.className = 'badge b-amber'; progress.style.width = '25%';
@@ -514,22 +586,42 @@ async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
     moneyStatus.textContent = t('slot-pending'); productStatus.textContent = t('slot-pending');
     document.getElementById('sd2').className = 'step-dot active';
     if (isBuyer) document.getElementById('payment-card').style.display = 'block';
+    // Vendedor ve upload-card para subir producto + conectar wallet
     if (isSeller) document.getElementById('upload-card').style.display = 'block';
+
   } else if (estado === 'verificando_pago') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
     badge.className = 'badge b-amber'; progress.style.width = '50%';
     document.getElementById('sd2').className = 'step-dot done';
     document.getElementById('sd3').className = 'step-dot active';
+    // Vendedor aun puede subir si no lo ha hecho
     if (isSeller) document.getElementById('upload-card').style.display = 'block';
+
   } else if (estado === 'entregado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-delivery');
     badge.className = 'badge b-amber'; progress.style.width = '75%';
-    slotProduct.className = 'vslot filled'; productStatus.className = 'slot-status ok';
-    productStatus.textContent = t('slot-uploaded') + ' OK';
+    slotProduct.className = 'vslot filled';
+    productStatus.className = 'slot-status ok';
+    productStatus.textContent = t('slot-uploaded') + ' &#10003;';
     document.getElementById('sd2').className = 'step-dot active';
     document.getElementById('sd3').className = 'step-dot done';
     if (isBuyer && !pagoConfirmado) document.getElementById('payment-card').style.display = 'block';
-    if (isSeller) document.getElementById('seller-waiting-msg').style.display = 'block';
+    if (isSeller) {
+      // Producto ya subido: mostrar card de espera
+      document.getElementById('seller-waiting-msg').style.display = 'block';
+      // Si el vendedor ya conecto wallet en esta sesion, mostrar confirmacion
+      // Si no, mostrar boton de conectar de respaldo
+      var btnSC2 = document.getElementById('btn-seller-connect-2');
+      var okMsg = document.getElementById('seller-waiting-wallet-ok');
+      if (sellerWalletConnected) {
+        if (btnSC2) btnSC2.style.display = 'none';
+        if (okMsg) okMsg.style.display = 'flex';
+      } else {
+        if (btnSC2) btnSC2.style.display = 'block';
+        if (okMsg) okMsg.style.display = 'none';
+      }
+    }
+
   } else if (estado === 'liberado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
     badge.className = 'badge b-green'; progress.style.width = '100%';
@@ -557,7 +649,7 @@ function copyAddress() {
 async function confirmPaid() {
   if (!currentTx) return;
   var wallet = tonConnectUI.wallet;
-  if (!wallet) { pendingPay = true; triggerTonConnect('buyer'); return; }
+  if (!wallet) { pendingBuyerPay = true; buyerConnect(); return; }
   var total = parseFloat(currentTx.total_depositar || currentTx.total || 0);
   var amountNano = BigInt(Math.round(total * 1e6)).toString();
   var USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
@@ -588,18 +680,29 @@ async function confirmPaid() {
 
 async function handleFileUpload(event) {
   var file = event.target.files[0]; if (!file) return;
-  document.getElementById('upload-text').textContent = 'OK ' + file.name;
+  document.getElementById('upload-text').textContent = '&#9989; ' + file.name;
   await db.from('transacciones').update({ estado: 'entregado', archivo_nombre: file.name, archivo_subido: true }).eq('id', txId);
   currentTx = Object.assign({}, currentTx, { archivo_subido: true, estado: 'entregado' });
+  // Ocultar upload, mostrar waiting
   document.getElementById('upload-card').style.display = 'none';
-  if (userRole !== 'seller') document.getElementById('confirm-card').style.display = 'block';
+  document.getElementById('seller-waiting-msg').style.display = 'block';
+  // Estado de wallet en el card de espera
+  var btnSC2 = document.getElementById('btn-seller-connect-2');
+  var okMsg = document.getElementById('seller-waiting-wallet-ok');
+  if (sellerWalletConnected) {
+    if (btnSC2) btnSC2.style.display = 'none';
+    if (okMsg) okMsg.style.display = 'flex';
+  } else {
+    if (btnSC2) btnSC2.style.display = 'block';
+    if (okMsg) okMsg.style.display = 'none';
+  }
+  // Actualizar slot producto
   document.getElementById('slot-product').className = 'vslot filled';
   document.getElementById('slot-product-status').className = 'slot-status ok';
-  document.getElementById('slot-product-status').textContent = t('slot-uploaded') + ' OK';
+  document.getElementById('slot-product-status').textContent = t('slot-uploaded') + ' &#10003;';
   document.getElementById('progress-fill').style.width = '75%';
   document.getElementById('sd3').className = 'step-dot done';
   document.getElementById('sd4').className = 'step-dot active';
-  if (userRole === 'seller') document.getElementById('seller-waiting-msg').style.display = 'block';
 }
 
 async function releaseFunds() {
@@ -621,14 +724,14 @@ function selectType(type) {
 
 function selectRole(role) {
   userRole = role;
-  var sellerBtn = document.getElementById('btn-seller');
-  var buyerBtn = document.getElementById('btn-buyer');
+  var sBtn = document.getElementById('btn-seller');
+  var bBtn = document.getElementById('btn-buyer');
   if (role === 'seller') {
-    sellerBtn.style.borderColor = '#00c896'; sellerBtn.style.background = 'rgba(0,200,150,0.1)';
-    buyerBtn.style.opacity = '0.4'; buyerBtn.style.pointerEvents = 'none';
+    sBtn.style.borderColor = '#00c896'; sBtn.style.background = 'rgba(0,200,150,0.1)';
+    bBtn.style.opacity = '0.4'; bBtn.style.pointerEvents = 'none';
   } else {
-    buyerBtn.style.borderColor = '#00c896'; buyerBtn.style.background = 'rgba(0,200,150,0.1)';
-    sellerBtn.style.opacity = '0.4'; sellerBtn.style.pointerEvents = 'none';
+    bBtn.style.borderColor = '#00c896'; bBtn.style.background = 'rgba(0,200,150,0.1)';
+    sBtn.style.opacity = '0.4'; sBtn.style.pointerEvents = 'none';
   }
   document.getElementById('price-form').style.display = 'block';
 }
@@ -641,7 +744,7 @@ async function declarePrice() {
   if (userRole === 'seller') {
     await db.from('transacciones').update({ vendedor_precio: price, estado: 'esperando_comprador_precio' }).eq('id', txId);
     document.getElementById('price-feedback').style.display = 'block';
-    document.getElementById('price-feedback').innerHTML = '<div class="alert alert-success">OK Precio declarado: <strong>$' + price.toFixed(2) + '</strong>. Esperando al comprador...</div>';
+    document.getElementById('price-feedback').innerHTML = '<div class="alert alert-success">&#9989; Precio declarado: <strong>$' + price.toFixed(2) + '</strong>. Esperando al comprador...</div>';
     document.getElementById('btn-declare').style.display = 'none';
   } else {
     if (!data.vendedor_precio) {
@@ -665,7 +768,6 @@ async function declarePrice() {
 }
 
 // ─── POLLING ──────────────────────────────────────────────────────────────────
-// Estados que deben mostrar s-deal
 var DEAL_STATES = ['esperando_pago', 'esperando_quien_paga', 'verificando_pago', 'entregado'];
 
 setInterval(async function() {
@@ -678,9 +780,9 @@ setInterval(async function() {
                 data.pago_confirmado !== currentTx.pago_confirmado;
   if (changed) {
     currentTx = data;
-    // Si el deal esta activo y no estamos en s-deal ni en s-success, navegar a s-deal
-    var screenId = getActiveScreenId();
-    if (DEAL_STATES.indexOf(data.estado) >= 0 && screenId !== 's-deal' && screenId !== 's-success') {
+    var sid = getActiveScreenId();
+    // Navegar a s-deal si el trato esta activo y no estamos ya ahi
+    if (DEAL_STATES.indexOf(data.estado) >= 0 && sid !== 's-deal' && sid !== 's-success') {
       goTo('s-deal');
     }
     renderDeal(data);
