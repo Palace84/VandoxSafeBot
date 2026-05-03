@@ -753,6 +753,10 @@ await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq(
         }
     }
 }, 5000);
+  function abrirWalletVendedor() {
+    console.log('Abriendo wallet vendedor...');
+    tonConnectUI.openModal();
+}
 applyLang();
 loadDeal();
 </script>
