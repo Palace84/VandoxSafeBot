@@ -245,12 +245,13 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB · All formats</div>
     </div>
   </div>
-  <div id="seller-waiting-msg" style="display:none" class="card">
-  <div class="alert alert-success">
+ <div id="seller-waiting-msg" style="display:none" class="card">
+  <div class="alert alert-success" style="margin-bottom:12px">
     <span>✅</span>
     <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
   </div>
-  <button class="btn-pay" onclick="abrirWalletVendedor()" style="margin-top:8px">🔗 Conectar wallet para cobrar</button>
+  <div class="card-title" style="margin-top:8px">Conecta tu wallet para recibir el pago</div>
+  <div id="seller-wallet-btn" style="margin-top:8px"></div>
 </div>
   
 
