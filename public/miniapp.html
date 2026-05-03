@@ -77,6 +77,11 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 </head>
 <body>
 
+<!-- SDK de TonConnect renderiza aqui — fuera de pantalla, siempre en el DOM.
+     Nuestros botones hacen .click() sobre el boton del SDK para que Telegram
+     procese correctamente el deeplink hacia la wallet app en movil. -->
+<div id="tc-sdk-root" style="position:fixed;top:-9999px;left:-9999px;width:200px;height:60px;overflow:visible;z-index:-1"></div>
+
 <div class="header">
   <div class="logo">&#128737;</div>
   <div>
@@ -218,7 +223,8 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <span>i</span>
       <span id="alert-memo"><strong>Important:</strong> Include the verification code as memo/comment when sending.</span>
     </div>
-    <button class="btn-ton" id="btn-buyer-connect" onclick="buyerConnectAndPay()">Conectar wallet y pagar</button>
+    <!-- Boton comprador: llama al SDK via proxy -->
+    <button class="btn-ton" id="btn-buyer-connect" onclick="triggerTonConnect('buyer')">Conectar wallet y pagar</button>
     <button class="btn-main" id="btn-paid" onclick="confirmPaid()" style="display:none">Pagar ahora</button>
   </div>
 
@@ -237,13 +243,14 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     </div>
   </div>
 
-  <!-- CARD VENDEDOR: producto subido, esperando pago, conectar wallet -->
+  <!-- CARD VENDEDOR: esperando pago tras subir producto -->
   <div class="card" id="seller-waiting-msg" style="display:none">
     <div class="alert alert-success" style="margin-bottom:12px">
       <span>OK</span>
       <span><strong>Producto en boveda.</strong> Esperando el pago del comprador.</span>
     </div>
-    <button class="btn-ton" id="btn-seller-connect" onclick="sellerConnect()">Conectar wallet para cobrar</button>
+    <!-- Boton vendedor: llama al SDK via proxy -->
+    <button class="btn-ton" id="btn-seller-connect" onclick="triggerTonConnect('seller')">Conectar wallet para cobrar</button>
     <div id="seller-wallet-ok" class="alert alert-success" style="display:none;margin-top:8px">
       <span>OK</span>
       <span id="seller-wallet-ok-text">Wallet conectada. Recibiras el pago automaticamente.</span>
@@ -289,25 +296,26 @@ var userRole = null;
 var dealType = null;
 var pendingPay = false;
 
-// UNA SOLA instancia de TonConnectUI, SIN buttonRootId
-// Esto evita completamente el conflicto entre vendedor y comprador
+// ─── UNA SOLA INSTANCIA DE TON CONNECT ────────────────────────────────────────
+// buttonRootId apunta a un div fuera de pantalla (top:-9999px).
+// El SDK renderiza su boton ahi y maneja correctamente los deeplinks en Telegram movil.
+// Nuestros botones visibles hacen .click() sobre el boton del SDK (triggerTonConnect).
 var tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-  manifestUrl: MANIFEST_URL
+  manifestUrl: MANIFEST_URL,
+  buttonRootId: 'tc-sdk-root'
 });
 
-// Un solo listener que actua segun el rol en el momento de la conexion
+// Un solo listener. Actua diferente segun el rol en el momento de la conexion.
 tonConnectUI.onStatusChange(function(wallet) {
   if (!wallet) return;
   var addr = wallet.account.address;
 
   if (userRole === 'seller') {
-    // Guardar wallet del vendedor en Supabase
     if (txId) {
       db.from('transacciones').update({ vendedor_wallet: addr }).eq('id', txId).then(function(res) {
-        console.log('vendedor_wallet:', addr, res.error ? res.error.message : 'OK');
+        console.log('vendedor_wallet guardado:', res.error ? res.error.message : 'OK');
       });
     }
-    // Ocultar boton y mostrar confirmacion
     var btnSC = document.getElementById('btn-seller-connect');
     if (btnSC) btnSC.style.display = 'none';
     var okEl = document.getElementById('seller-wallet-ok');
@@ -319,12 +327,10 @@ tonConnectUI.onStatusChange(function(wallet) {
     }
 
   } else if (userRole === 'buyer') {
-    // Ocultar boton conectar, mostrar boton pagar
     var btnBC = document.getElementById('btn-buyer-connect');
     var btnPay = document.getElementById('btn-paid');
     if (btnBC) btnBC.style.display = 'none';
     if (btnPay) btnPay.style.display = 'block';
-    // Si el usuario ya habia pulsado pagar antes de conectar, ejecutar ahora
     if (pendingPay) {
       pendingPay = false;
       confirmPaid();
@@ -332,17 +338,45 @@ tonConnectUI.onStatusChange(function(wallet) {
   }
 });
 
+// ─── PROXY AL BOTON DEL SDK ───────────────────────────────────────────────────
+// Busca el boton que el SDK renderizo en #tc-sdk-root y hace .click() sobre el.
+// Esto garantiza que Telegram procese el deeplink correctamente en movil.
+function triggerTonConnect(role) {
+  // Si ya hay wallet conectada y es comprador, ir directo a pagar
+  if (role === 'buyer' && tonConnectUI.wallet) {
+    confirmPaid();
+    return;
+  }
+  // Intentar click en el boton del SDK (el SDK lo renderiza dentro de #tc-sdk-root)
+  var sdkBtn = document.querySelector('#tc-sdk-root button');
+  if (sdkBtn) {
+    console.log('Disparando click en boton SDK TonConnect');
+    sdkBtn.click();
+  } else {
+    // Fallback: openModal directo (funciona en web, puede fallar en movil Telegram)
+    console.log('Boton SDK no encontrado, usando openModal()');
+    tonConnectUI.openModal();
+  }
+  // Flag para comprador: cuando conecte la wallet, lanzar pago automaticamente
+  if (role === 'buyer') pendingPay = true;
+}
+
+// ─── TRADUCCIONES ─────────────────────────────────────────────────────────────
 var T = {
   en: {
     'lang-sub':'Secure Escrow','loading-text':'Loading deal...','error-title':'Deal not found','error-sub':'This deal may have expired.',
     'lbl-vault':'Vault status','vault-subtitle':'Both slots must be filled to release','lbl-payment':'Payment','lbl-product':'Product',
     's1':'Created','s2':'Payment','s3':'Delivery','s4':'Released',
     'lbl-details':'Deal details','lbl-amount':'Amount','lbl-fee':'Vandox fee','lbl-total':'Total to send','lbl-code':'Code','lbl-mode':'Mode',
-    'lbl-pay-title':'Send payment','alert-network':'<strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.',
-    'lbl-wallet':'Vandox Vault Address','copy-btn':'Copy address','alert-memo':'<strong>Important:</strong> Include verification code as memo/comment.',
-    'lbl-upload-title':'Upload your product','alert-paid-confirm':'<strong>Payment confirmed.</strong> Now upload your digital product.',
+    'lbl-pay-title':'Send payment',
+    'alert-network':'<strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.',
+    'lbl-wallet':'Vandox Vault Address','copy-btn':'Copy address',
+    'alert-memo':'<strong>Important:</strong> Include verification code as memo/comment.',
+    'lbl-upload-title':'Upload your product',
+    'alert-paid-confirm':'<strong>Payment confirmed.</strong> Now upload your digital product.',
     'upload-text':'Tap to upload file','upload-sub':'Max 50MB - All formats',
-    'lbl-confirm-title':'Review and release','alert-product-ready':'<strong>Product uploaded.</strong> Review carefully before releasing.',
+    'lbl-confirm-title':'Review and release',
+    'alert-product-ready':'<strong>Product uploaded.</strong> Review carefully before releasing.',
     'success-title':'Deal complete!','success-sub':'Funds released. Recorded on blockchain. Permanent.',
     'slot-pending':'Pending','slot-confirmed':'Confirmed','slot-uploaded':'Uploaded',
     'deal-badge-pending':'Awaiting payment','deal-badge-verifying':'Verifying payment',
@@ -353,11 +387,15 @@ var T = {
     'lbl-vault':'Estado de la boveda','vault-subtitle':'Ambos compartimentos deben llenarse para liberar','lbl-payment':'Pago','lbl-product':'Producto',
     's1':'Creado','s2':'Pago','s3':'Entrega','s4':'Liberado',
     'lbl-details':'Detalles del trato','lbl-amount':'Importe','lbl-fee':'Tarifa Vandox','lbl-total':'Total a enviar','lbl-code':'Codigo','lbl-mode':'Modo',
-    'lbl-pay-title':'Enviar pago','alert-network':'<strong>Solo red TON.</strong> Envia USDT por TON. Red incorrecta = fondos perdidos.',
-    'lbl-wallet':'Direccion de la boveda Vandox','copy-btn':'Copiar direccion','alert-memo':'<strong>Importante:</strong> Incluye el codigo como memo/comentario al enviar.',
-    'lbl-upload-title':'Sube tu producto','alert-paid-confirm':'<strong>Pago confirmado.</strong> Ahora sube tu producto digital.',
+    'lbl-pay-title':'Enviar pago',
+    'alert-network':'<strong>Solo red TON.</strong> Envia USDT por TON. Red incorrecta = fondos perdidos.',
+    'lbl-wallet':'Direccion de la boveda Vandox','copy-btn':'Copiar direccion',
+    'alert-memo':'<strong>Importante:</strong> Incluye el codigo como memo/comentario al enviar.',
+    'lbl-upload-title':'Sube tu producto',
+    'alert-paid-confirm':'<strong>Pago confirmado.</strong> Ahora sube tu producto digital.',
     'upload-text':'Toca para subir archivo','upload-sub':'Max 50MB - Todos los formatos',
-    'lbl-confirm-title':'Revisar y liberar','alert-product-ready':'<strong>Producto subido.</strong> Revisalo antes de liberar los fondos.',
+    'lbl-confirm-title':'Revisar y liberar',
+    'alert-product-ready':'<strong>Producto subido.</strong> Revisalo antes de liberar los fondos.',
     'success-title':'Trato completado!','success-sub':'Fondos liberados. Registrado en blockchain. Permanente.',
     'slot-pending':'Pendiente','slot-confirmed':'Confirmado','slot-uploaded':'Subido',
     'deal-badge-pending':'Esperando pago','deal-badge-verifying':'Verificando pago',
@@ -369,21 +407,9 @@ function t(key) { return (T[L] && T[L][key]) || (T['en'] && T['en'][key]) || key
 function applyLang() { Object.keys(T[L]).forEach(function(k){ var el=document.getElementById(k); if(el) el.innerHTML=t(k); }); }
 function goTo(id) { document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');}); document.getElementById(id).classList.add('active'); }
 
-// Comprador pulsa el boton azul:
-// - Si ya tiene wallet conectada -> va directo a pagar
-// - Si no -> abre modal y pone flag pendingPay para disparar confirmPaid() al conectar
-function buyerConnectAndPay() {
-  if (tonConnectUI.wallet) {
-    confirmPaid();
-  } else {
-    pendingPay = true;
-    tonConnectUI.openModal();
-  }
-}
-
-// Vendedor pulsa su boton: abre modal simplemente
-function sellerConnect() {
-  tonConnectUI.openModal();
+function getActiveScreenId() {
+  var active = document.querySelector('.screen.active');
+  return active ? active.id : '';
 }
 
 function getTxIdFromUrl() {
@@ -524,14 +550,14 @@ function copyAddress() {
     document.execCommand('copy'); document.body.removeChild(ta);
   } catch(e) {}
   var btn = document.getElementById('copy-btn');
-  btn.textContent = L === 'es' ? 'Copiado!' : 'Copied!';
+  btn.textContent = 'Copiado!';
   setTimeout(function() { btn.textContent = t('copy-btn'); }, 2000);
 }
 
 async function confirmPaid() {
   if (!currentTx) return;
   var wallet = tonConnectUI.wallet;
-  if (!wallet) { pendingPay = true; tonConnectUI.openModal(); return; }
+  if (!wallet) { pendingPay = true; triggerTonConnect('buyer'); return; }
   var total = parseFloat(currentTx.total_depositar || currentTx.total || 0);
   var amountNano = BigInt(Math.round(total * 1e6)).toString();
   var USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
@@ -638,13 +664,26 @@ async function declarePrice() {
   }
 }
 
+// ─── POLLING ──────────────────────────────────────────────────────────────────
+// Estados que deben mostrar s-deal
+var DEAL_STATES = ['esperando_pago', 'esperando_quien_paga', 'verificando_pago', 'entregado'];
+
 setInterval(async function() {
   if (!txId || !currentTx) return;
   var res = await db.from('transacciones').select('*').eq('id', txId).single();
   if (!res.data) return;
   var data = res.data;
-  if (data.estado !== currentTx.estado || data.archivo_subido !== currentTx.archivo_subido || data.pago_confirmado !== currentTx.pago_confirmado) {
-    currentTx = data; renderDeal(data);
+  var changed = data.estado !== currentTx.estado ||
+                data.archivo_subido !== currentTx.archivo_subido ||
+                data.pago_confirmado !== currentTx.pago_confirmado;
+  if (changed) {
+    currentTx = data;
+    // Si el deal esta activo y no estamos en s-deal ni en s-success, navegar a s-deal
+    var screenId = getActiveScreenId();
+    if (DEAL_STATES.indexOf(data.estado) >= 0 && screenId !== 's-deal' && screenId !== 's-success') {
+      goTo('s-deal');
+    }
+    renderDeal(data);
     if (data.estado === 'liberado') goTo('s-success');
     if (data.estado === 'esperando_comprador_precio') { dealType = data.tipo; goTo('s-price'); }
   }
