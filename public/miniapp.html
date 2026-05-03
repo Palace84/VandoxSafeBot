@@ -662,14 +662,7 @@ const { error } = await db.from('transacciones').update({ estado: 'entregado', a
   console.log('Update archivo:', error ? error.message : 'OK', 'txId:', txId);
   currentTx = { ...currentTx, archivo_subido: true, estado: 'entregado' };
   renderDeal(currentTx);
-  if (userRole === 'seller') {
-    const sellerMsg = document.getElementById('seller-waiting-msg');
-    if (sellerMsg) sellerMsg.style.display = 'block';
-  }
-  if (userRole === 'seller') {
-    const sellerMsg = document.getElementById('seller-waiting-msg');
-    if (sellerMsg) sellerMsg.style.display = 'block';
-  }
+
   document.getElementById('upload-card').style.display = 'none';
   if (userRole !== 'seller') document.getElementById('confirm-card').style.display = 'block';
   document.getElementById('slot-product').className = 'vslot filled';
