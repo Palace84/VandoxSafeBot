@@ -566,10 +566,7 @@ if (pagoConfirmado) {
     if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
     document.getElementById('sd2').className = 'step-dot active';
     document.getElementById('sd3').className = 'step-dot done';
-   if (archivoSubido) {
-        const sellerMsg = document.getElementById('seller-waiting-msg');
-        if (sellerMsg) sellerMsg.style.display = 'block';
-    }
+  
   } else if (estado === 'liberado') {
     badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
     badge.className = 'badge b-green';
