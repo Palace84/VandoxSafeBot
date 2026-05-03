@@ -250,7 +250,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <span>✅</span>
     <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
   </div>
-  <button class="btn-pay" onclick="abrirWalletVendedor()" style="margin-top:8px">🔗 Conectar wallet para cobrar</button>
+<div id="seller-ton-btn" style="margin-top:8px"></div>
 </div>
   
 
@@ -430,6 +430,9 @@ async function loadDeal() {
 const params = new URLSearchParams(window.location.search);
 const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
 userRole = (myTgId && myTgId === data.vendedor_telegram_id) ? 'seller' : 'buyer';
+  if (userRole === 'seller') {
+  document.getElementById('seller-ton-btn').appendChild(document.getElementById('ton-connect-btn'));
+}
   console.log('userRole asignado:', userRole);
 if (userRole === 'buyer' && !data.comprador_nombre) {
     const nombre = await getNombreDeUsuario();
