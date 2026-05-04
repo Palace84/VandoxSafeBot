@@ -288,12 +288,14 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
         btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
     }
     if (wallet && txId) {
-        const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
-        const isSeller = currentTx && myTgId && myTgId === currentTx.vendedor_telegram_id;
-        if (isSeller) {
-            await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
-        }
+    const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
+    const { data: txData } = await db.from('transacciones').select('vendedor_telegram_id').eq('id', txId).single();
+    const isSeller = txData && myTgId && myTgId === txData.vendedor_telegram_id;
+    if (isSeller) {
+        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
+        console.log('vendedor_wallet guardado:', wallet.account.address);
     }
+}
 });
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
