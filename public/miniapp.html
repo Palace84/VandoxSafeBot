@@ -287,8 +287,12 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
         btn.style.display = 'block';
         btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
     }
-    if (wallet && userRole === 'seller' && txId) {
-        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
+    if (wallet && txId) {
+        const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
+        const isSeller = currentTx && myTgId && myTgId === currentTx.vendedor_telegram_id;
+        if (isSeller) {
+            await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
+        }
     }
 });
 const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
