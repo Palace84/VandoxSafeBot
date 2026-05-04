@@ -8,7 +8,7 @@ const WALLET_MNEMONIC = process.env.WALLET_MNEMONIC;
 
 const tonClient = new TonClient({
     endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-    apiKey: ''
+    apiKey: process.env.TONCENTER_KEY || ''
 });
 const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
