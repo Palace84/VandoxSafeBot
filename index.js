@@ -169,7 +169,7 @@ app.get('/descargar/:txId', async (req, res) => {
 
         // 7. Generar URL firmada temporal (válida 60 segundos)
         const { data, error } = await supabase.storage
-            .from('productos')
+            .from('Productos')
             .createSignedUrl(tx.archivo_path, 60);
 
         if (error) {
@@ -253,7 +253,7 @@ function txt(lang, key, vars) {
             disputed: '⚠️ *Disputa abierta.*\nVandox revisará y contactará a ambas partes.',
             tarifas: '📊 *Tarifas Vandox:*\n\n• Ventas menores de $50: *$1.00 fijo*\n• Ventas de $50+: *1.5%*\n• Trueques: *$1.00 fijo*\n\n_El servicio de custodia más barato del mercado._',
             cancelled: '❌ Trato cancelado.',
-            swapReady: '🔄 *Trueque iniciado*\n\nAmbas partes suben sus productos digitales aquí.\nEl intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *{{code}}*\nTX: {{txid}}',
+            swapReady: '🔄 *Trueque iniciado*\n\nAmbas partes suben sus Productos digitales aquí.\nEl intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *{{code}}*\nTX: {{txid}}',
         }
     };
     let s = (T[lang]?.[key]) || (T.en[key]) || key;
