@@ -771,7 +771,7 @@ async function handleFileUpload(event) {
 
   // Subir a Supabase Storage
   const { error: uploadError } = await db.storage
-    .from('productos')
+    .from('Productos')
     .upload(filePath, file, { upsert: true, cacheControl: '3600' });
 
   clearInterval(progInterval);
