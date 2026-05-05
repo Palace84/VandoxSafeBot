@@ -884,7 +884,8 @@ async function declarePrice() {
       const total = parseFloat((price + fee).toFixed(2));
       const nombreComprador = await getNombreDeUsuario();
       await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq('id', txId);
-      await db.from('transacciones').update({ comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
+      const compradorTgId = tg?.initDataUnsafe?.user?.id?.toString();
+await db.from('transacciones').update({ comprador_precio: price, comprador_id: compradorTgId, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
       currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
       renderDeal(currentTx);
       goTo('s-deal');
