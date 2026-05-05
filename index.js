@@ -111,6 +111,80 @@ app.get('/user', (req, res) => {
         res.json({ user: null });
     }
 });
+// ── ENDPOINT DESCARGA SEGURA ─────────────────────────────────────────────────
+// Añade esto en index.js ANTES de app.listen(...)
+// Colócalo junto a los otros endpoints como /liberar y /user
+
+app.get('/descargar/:txId', async (req, res) => {
+    try {
+        const { txId } = req.params;
+        const initData = req.query.initData;
+
+        // 1. Verificar que viene initData
+        if (!initData) return res.status(401).json({ error: 'No autorizado' });
+
+        // 2. Validar initData de Telegram (misma lógica que /user)
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+
+        const dataCheckString = Array.from(params.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => k + '=' + v)
+            .join('\n');
+
+        const secretKey = crypto.createHmac('sha256', 'WebAppData')
+            .update(process.env.BOT_TOKEN)
+            .digest();
+
+        const calculatedHash = crypto.createHmac('sha256', secretKey)
+            .update(dataCheckString)
+            .digest('hex');
+
+        if (calculatedHash !== hash) {
+            return res.status(401).json({ error: 'initData inválido' });
+        }
+
+        const user = JSON.parse(params.get('user') || '{}');
+        const userId = String(user.id);
+
+        // 3. Obtener la transacción
+        const tx = await getTx(txId);
+        if (!tx) return res.status(404).json({ error: 'Trato no encontrado' });
+
+        // 4. Verificar que quien descarga es el comprador
+        if (userId !== String(tx.comprador_id)) {
+            return res.status(403).json({ error: 'Solo el comprador puede descargar el archivo' });
+        }
+
+        // 5. Verificar que el pago está confirmado
+        if (!tx.pago_confirmado) {
+            return res.status(403).json({ error: 'Pago no confirmado aún' });
+        }
+
+        // 6. Verificar que hay archivo subido
+        if (!tx.archivo_path) {
+            return res.status(404).json({ error: 'No hay archivo en esta transacción' });
+        }
+
+        // 7. Generar URL firmada temporal (válida 60 segundos)
+        const { data, error } = await supabase.storage
+            .from('productos')
+            .createSignedUrl(tx.archivo_path, 60);
+
+        if (error) {
+            console.log('Error signed URL:', error.message);
+            return res.status(500).json({ error: 'Error generando enlace de descarga' });
+        }
+
+        res.json({ url: data.signedUrl, nombre: tx.archivo_nombre });
+
+    } catch(e) {
+        console.log('Error /descargar:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log('Mini App server running on port ' + PORT);
 });
