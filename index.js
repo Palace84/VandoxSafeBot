@@ -2,17 +2,17 @@ const { Telegraf, Markup } = require('telegraf');
 const fetch = require('node-fetch');
 const { TonClient, WalletContractV4, internal, toNano, Address, beginCell } = require('@ton/ton');
 const { mnemonicToPrivateKey } = require('@ton/crypto');
+const { createClient } = require('@supabase/supabase-js');
+const express = require('express');
+const path = require('path');
+const crypto = require('crypto');
 
-const CONTRACT_ADDRESS = process.env.BOT_WALLET_ADDRESS;
 const WALLET_MNEMONIC = process.env.WALLET_MNEMONIC;
-
 const tonClient = new TonClient({
     endpoint: 'https://toncenter.com/api/v2/jsonRPC',
     apiKey: process.env.TONCENTER_KEY || ''
 });
-const { createClient } = require('@supabase/supabase-js');
-const express = require('express');
-const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use((req, res, next) => {
@@ -22,176 +22,13 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-const crypto = require('crypto');
-app.post('/liberar', async (req, res) => {
-    try {
-        const { txId } = req.body;
-        if (!txId) return res.json({ ok: false });
-        const tx = await getTx(txId);
-        if (!tx) return res.json({ ok: false });
-        if (!tx.pago_confirmado || !tx.archivo_subido) return res.json({ ok: false, motivo: 'faltan slots' });
-        if (tx.estado === 'liberado') return res.json({ ok: true, motivo: 'ya liberado' });
-        const ok = await distribuirFondos(tx);
-        await saveTx({ ...tx, estado: 'liberado' });
-        const lang = tx.lang || 'en';
-        const msg = txt(lang, 'released', { txid: txId });
-        if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-        if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-        if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
-        res.json({ ok: true, distribuido: ok });
-    } catch(e) {
-        console.log('Error liberar:', e.message);
-        res.json({ ok: false, error: e.message });
-    }
-});
-app.post('/ton-webhook', async (req, res) => {
-    res.sendStatus(200);
-    console.log('TON WEBHOOK RECIBIDO:', JSON.stringify(req.body));
-    try {
-        const event = req.body;
-        if (!event || !event.actions) return;
-        
-        for (const action of event.actions) {
-            if (action.type !== 'JettonTransfer') continue;
-            const transfer = action.JettonTransfer;
-            if (!transfer) continue;
-            
-            const amount = parseFloat(transfer.amount || '0') / 1e6;
-            const comment = transfer.comment || '';
-            const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
-            
-            if (transfer.recipient?.address !== BOT_WALLET) continue;
-            
-            const { data: tratos } = await supabase
-                .from('transacciones')
-                .select('*')
-                .eq('estado', 'verificando_pago');
-            
-            if (!tratos) continue;
-            
-            for (const tx of tratos) {
-                const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
-                if (Math.abs(amount - totalEsperado) < 0.1 || comment.includes(tx.code)) {
-                    await liberarAutomatico(tx);
-                    break;
-                }
-            }
-        }
-    } catch(e) {
-        console.log('Webhook error:', e.message);
-    }
-});
-app.get('/user', (req, res) => {
-    const initData = req.query.initData;
-    if (!initData) return res.json({ user: null });
-    
-    try {
-        const params = new URLSearchParams(initData);
-        const hash = params.get('hash');
-        params.delete('hash');
-        
-        const dataCheckString = Array.from(params.entries())
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([k, v]) => k + '=' + v)
-            .join('\n');
-        
-        const secretKey = crypto.createHmac('sha256', 'WebAppData')
-            .update(process.env.BOT_TOKEN)
-            .digest();
-        
-        const calculatedHash = crypto.createHmac('sha256', secretKey)
-            .update(dataCheckString)
-            .digest('hex');
-        
-        if (calculatedHash !== hash) return res.json({ user: null });
-        
-        const user = JSON.parse(params.get('user') || '{}');
-        res.json({ user });
-    } catch(e) {
-        res.json({ user: null });
-    }
-});
-// ── ENDPOINT DESCARGA SEGURA ─────────────────────────────────────────────────
-// Añade esto en index.js ANTES de app.listen(...)
-// Colócalo junto a los otros endpoints como /liberar y /user
 
-app.get('/descargar/:txId', async (req, res) => {
-    try {
-        const { txId } = req.params;
-        const initData = req.query.initData;
-
-        // 1. Verificar que viene initData
-        if (!initData) return res.status(401).json({ error: 'No autorizado' });
-
-        // 2. Validar initData de Telegram (misma lógica que /user)
-        const params = new URLSearchParams(initData);
-        const hash = params.get('hash');
-        params.delete('hash');
-
-        const dataCheckString = Array.from(params.entries())
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([k, v]) => k + '=' + v)
-            .join('\n');
-
-        const secretKey = crypto.createHmac('sha256', 'WebAppData')
-            .update(process.env.BOT_TOKEN)
-            .digest();
-
-        const calculatedHash = crypto.createHmac('sha256', secretKey)
-            .update(dataCheckString)
-            .digest('hex');
-
-        if (calculatedHash !== hash) {
-            return res.status(401).json({ error: 'initData inválido' });
-        }
-
-        const user = JSON.parse(params.get('user') || '{}');
-        const userId = String(user.id);
-
-        // 3. Obtener la transacción
-        const tx = await getTx(txId);
-        if (!tx) return res.status(404).json({ error: 'Trato no encontrado' });
-
-        // 4. Verificar que quien descarga es el comprador
-        if (userId !== String(tx.comprador_id)) {
-            return res.status(403).json({ error: 'Solo el comprador puede descargar el archivo' });
-        }
-
-        // 5. Verificar que el pago está confirmado
-        if (!tx.pago_confirmado) {
-            return res.status(403).json({ error: 'Pago no confirmado aún' });
-        }
-
-        // 6. Verificar que hay archivo subido
-        if (!tx.archivo_path) {
-            return res.status(404).json({ error: 'No hay archivo en esta transacción' });
-        }
-
-        // 7. Generar URL firmada temporal (válida 60 segundos)
-        const { data, error } = await supabase.storage
-            .from('Productos')
-            .createSignedUrl(tx.archivo_path, 60);
-
-        if (error) {
-            console.log('Error signed URL:', error.message);
-            return res.status(500).json({ error: 'Error generando enlace de descarga' });
-        }
-
-        res.json({ url: data.signedUrl, nombre: tx.archivo_nombre });
-
-    } catch(e) {
-        console.log('Error /descargar:', e.message);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.listen(PORT, () => {
-    console.log('Mini App server running on port ' + PORT);
-});
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ADMIN_ID = process.env.ADMIN_ID;
 const WALLET_TON = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
 
 function calcFee(amount) {
     return amount <= 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
@@ -202,6 +39,30 @@ function getLang(ctx) {
     const l = ctx.from?.language_code;
     return l && l.startsWith('es') ? 'es' : 'en';
 }
+async function saveTx(tx) {
+    const { error } = await supabase.from('transacciones').upsert(tx);
+    if (error) console.log('Supabase error:', error.message);
+}
+async function getTx(id) {
+    const { data } = await supabase.from('transacciones').select('*').eq('id', id).single();
+    return data;
+}
+async function notifyAdmin(msg) {
+    try { await bot.telegram.sendMessage(ADMIN_ID, msg, { parse_mode: 'Markdown' }); }
+    catch (e) { console.log('Admin notify error:', e.message); }
+}
+async function getActiveTx(chatId) {
+    const { data } = await supabase
+        .from('transacciones')
+        .select('*')
+        .eq('grupo_id', chatId)
+        .in('estado', ['esperando_vendedor_precio', 'esperando_comprador_precio'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+    return data?.[0] || null;
+}
+
+// ── TEXTOS ───────────────────────────────────────────────────────────────────
 
 function txt(lang, key, vars) {
     const T = {
@@ -253,7 +114,7 @@ function txt(lang, key, vars) {
             disputed: '⚠️ *Disputa abierta.*\nVandox revisará y contactará a ambas partes.',
             tarifas: '📊 *Tarifas Vandox:*\n\n• Ventas menores de $50: *$1.00 fijo*\n• Ventas de $50+: *1.5%*\n• Trueques: *$1.00 fijo*\n\n_El servicio de custodia más barato del mercado._',
             cancelled: '❌ Trato cancelado.',
-            swapReady: '🔄 *Trueque iniciado*\n\nAmbas partes suben sus Productos digitales aquí.\nEl intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *{{code}}*\nTX: {{txid}}',
+            swapReady: '🔄 *Trueque iniciado*\n\nAmbas partes suben sus productos digitales aquí.\nEl intercambio ocurre simultáneamente.\n\nTarifa fija: *$1.00*\n🔑 Código: *{{code}}*\nTX: {{txid}}',
         }
     };
     let s = (T[lang]?.[key]) || (T.en[key]) || key;
@@ -261,310 +122,8 @@ function txt(lang, key, vars) {
     return s;
 }
 
-async function saveTx(tx) {
-    const { error } = await supabase.from('transacciones').upsert(tx);
-    if (error) console.log('Supabase error:', error.message);
-}
-async function getTx(id) {
-    const { data } = await supabase.from('transacciones').select('*').eq('id', id).single();
-    return data;
-}
-async function notifyAdmin(msg) {
-    try { await bot.telegram.sendMessage(ADMIN_ID, msg, { parse_mode: 'Markdown' }); }
-    catch (e) { console.log('Admin error:', e.message); }
-}
-async function getActiveTx(chatId) {
-    const { data } = await supabase
-        .from('transacciones')
-        .select('*')
-        .eq('grupo_id', chatId)
-        .in('estado', ['esperando_vendedor_precio', 'esperando_comprador_precio'])
-        .order('created_at', { ascending: false })
-        .limit(1);
-    return data?.[0] || null;
-}
+// ── TON / USDT ────────────────────────────────────────────────────────────────
 
-const triggers = [
-    'vendo','vender','venta','compro','comprar','precio','pago','pagar',
-    'deal','sell','buy','price','payment','swap','trueque','intercambio',
-    'cuanto','cuánto','ofrezco','busco','interesado','acuerdo','trato'
-];
-
-// COMANDO START
-bot.command('start', (ctx) => {
-    if (ctx.chat.type !== 'private') return;
-    const lang = getLang(ctx);
-    ctx.replyWithMarkdown(txt(lang, 'welcome'), Markup.inlineKeyboard([
-        [Markup.button.callback(txt(lang, 'saleBtn'), 'sale_private')],
-        [Markup.button.callback(txt(lang, 'swapBtn'), 'swap_private')],
-        [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
-    ]));
-});
-
-// ADMIN LIBERAR
-bot.command('liberar', async (ctx) => {
-    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
-    const txId = ctx.message.text.split(' ')[1];
-    if (!txId) return ctx.reply('Uso: /liberar VDX-XXXX');
-    const tx = await getTx(txId);
-    if (!tx) return ctx.reply('TX no encontrada: ' + txId);
-    await saveTx({ ...tx, estado: 'liberado' });
-    const lang = tx.lang || 'en';
-    const msg = txt(lang, 'released', { txid: txId });
-    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
-    ctx.reply('✅ Liberado: ' + txId);
-});
-
-// ADMIN DISPUTAR
-bot.command('disputar', async (ctx) => {
-    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
-    const txId = ctx.message.text.split(' ')[1];
-    if (!txId) return ctx.reply('Uso: /disputar VDX-XXXX');
-    const tx = await getTx(txId);
-    if (!tx) return ctx.reply('TX no encontrada: ' + txId);
-    await saveTx({ ...tx, estado: 'disputa' });
-    const lang = tx.lang || 'en';
-    const msg = txt(lang, 'disputed');
-    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-    ctx.reply('⚠️ Disputa activada: ' + txId);
-});
-
-// MENSAJES EN GRUPOS — número primero, trigger después
-bot.on('message', async (ctx) => {
-    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return;
-    const text = ctx.message?.text;
-    if (!text) return;
-
-    const chatId = String(ctx.chat.id);
-    const userId = String(ctx.from.id);
-    const lang = getLang(ctx);
-
-    // PRIORIDAD 1: ¿hay transacción activa esperando un número?
-    const isNumber = /^\d+([.,]\d+)?$/.test(text.trim());
-    if (isNumber) {
-        const tx = await getActiveTx(chatId);
-        if (tx) {
-            const amount = parseFloat(text.replace(',', '.'));
-            const txLang = tx.lang || 'en';
-
-            if (tx.estado === 'esperando_vendedor_precio') {
-    await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: userId, estado: 'esperando_comprador_precio' });
-    return ctx.replyWithMarkdown(txt(txLang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
-}
-
-if (tx.estado === 'esperando_comprador_precio') {
-    if (userId === tx.vendedor_id) {
-        return ctx.replyWithMarkdown('❌ El vendedor no puede actuar como comprador en el mismo trato.');
-    }
-    if (amount !== tx.vendedor_precio) {
-        return ctx.replyWithMarkdown(txt(txLang, 'priceMismatch', {
-            seller: tx.vendedor_precio.toFixed(2),
-            buyer: amount.toFixed(2)
-        }));
-    }
-    const fee = calcFee(amount);
-    const total = parseFloat((amount + fee).toFixed(2));
-    await saveTx({ ...tx, comprador_precio: amount, comprador_id: userId, fee, total, estado: 'esperando_quien_paga' });
-    return ctx.replyWithMarkdown(
-        txt(txLang, 'priceMatch', { amount: amount.toFixed(2), fee: fee.toFixed(2), total: total.toFixed(2), code: tx.code }),
-        Markup.inlineKeyboard([
-            [Markup.button.callback(txt(txLang, 'buyerPays'), 'fee_buyer_' + tx.id)],
-            [Markup.button.callback(txt(txLang, 'sellerPays'), 'fee_seller_' + tx.id)],
-            [Markup.button.callback(txt(txLang, 'splitPays'), 'fee_split_' + tx.id)]
-        ])
-    );
-}
-    
-            return;
-        }
-    }
-
-    // PRIORIDAD 2: detectar palabras clave de trato
-    const lower = text.toLowerCase();
-    const isTrigger = triggers.some(t => lower.includes(t));
- if (isTrigger) {
-    const txId = genTxId();
-    const code = genCode();
-    await saveTx({ 
-        id: txId, 
-        grupo_id: String(ctx.chat.id), 
-        vendedor_telegram_id: userId, 
-        vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor', 
-        estado: 'nuevo', 
-        lang, 
-        code, 
-      tipo: 'pendiente' 
-    });
-    const miniAppUrl = 'https://t.me/VandoxSafeBot/app?startapp=' + txId;
-   
-    return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
-        reply_markup: {
-            inline_keyboard: [
-                [ { text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), url: miniAppUrl } ]
-            ]
-        }
-    });
-}
-});
-// BOTON: INICIAR TRATO
-bot.action('start_deal', async (ctx) => {
-    await ctx.answerCbQuery();
-    const lang = getLang(ctx);
-    ctx.replyWithMarkdown(txt(lang, 'welcome'), Markup.inlineKeyboard([
-        [Markup.button.callback(txt(lang, 'saleBtn'), 'start_sale')],
-        [Markup.button.callback(txt(lang, 'swapBtn'), 'start_swap')],
-        [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
-    ]));
-});
-
-// BOTON: INICIAR VENTA
-bot.action('start_sale', async (ctx) => {
-    await ctx.answerCbQuery();
-    const lang = getLang(ctx);
-    const txId = genTxId();
-    const code = genCode();
-    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'esperando_vendedor_precio', lang, code, tipo: 'venta' });
-
-const nombre = encodeURIComponent(ctx.from.first_name || ctx.from.username || 'Usuario');
-const miniAppUrl = 'https://t.me/VandoxSafeBot/app?startapp=' + txId;
-ctx.replyWithMarkdown(
-    txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
-    Markup.inlineKeyboard([
-        [{ text: '🛡️ Open Vandox Safe', web_app: { url: miniAppUrl } }]
-    ])
-);
-});
-// BOTON: INICIAR SWAP
-bot.action('start_swap', async (ctx) => {
-    await ctx.answerCbQuery();
-    const lang = getLang(ctx);
-    const txId = genTxId();
-    const code = genCode();
-    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'swap_iniciado', lang, code, tipo: 'swap', fee: 1.00 });
-    ctx.replyWithMarkdown(txt(lang, 'swapReady', { code, txid: txId }));
-    await notifyAdmin('🔄 Nuevo swap\nTX: ' + txId + '\nGrupo: ' + ctx.chat.id);
-});
-
-// BOTON: QUIEN PAGA FEE
-bot.action(/^fee_(buyer|seller|split)_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    const who = ctx.match[1];
-    const txId = ctx.match[2];
-    const tx = await getTx(txId);
-    if (!tx) return;
-    const lang = tx.lang || 'en';
-    let total = tx.comprador_precio;
-    if (who === 'buyer') total = parseFloat((tx.comprador_precio + tx.fee).toFixed(2));
-    else if (who === 'split') total = parseFloat((tx.comprador_precio + tx.fee / 2).toFixed(2));
-    await saveTx({ ...tx, quien_paga_fee: who, total_depositar: total, estado: 'esperando_pago' });
-    ctx.replyWithMarkdown(
-        txt(lang, 'payInstructions', { total: total.toFixed(2), wallet: WALLET_TON, code: tx.code, txid: txId }),
-        Markup.inlineKeyboard([
-            [Markup.button.callback(txt(lang, 'paidBtn'), 'paid_' + txId)],
-            [Markup.button.callback(txt(lang, 'cancelBtn'), 'cancel_' + txId)]
-        ])
-    );
-});
-
-// BOTON: PAGO ENVIADO
-bot.action(/^paid_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    const txId = ctx.match[1];
-    const tx = await getTx(txId);
-    if (!tx) return;
-    const lang = tx.lang || 'en';
-    await saveTx({ ...tx, estado: 'verificando_pago' });
-    iniciarVerificacionActiva(txId);
-    ctx.replyWithMarkdown(txt(lang, 'paidNotif'));
-    const adminMsg = txt(lang, 'adminNotif', {
-        txid: txId,
-        total: String(tx.total_depositar || tx.total || '?'),
-        code: tx.code,
-        group: tx.grupo_id
-    });
-    try {
-        await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: '✅ Liberar fondos', callback_data: 'admin_liberar_' + txId },
-                    { text: '⚠️ Disputar', callback_data: 'admin_disputar_' + txId }
-                ]]
-            }
-        });
-    } catch (e) { console.log('Admin error:', e.message); }
-});
-
-bot.action(/^admin_liberar_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
-    const txId = ctx.match[1];
-    const tx = await getTx(txId);
-    if (!tx) return;
-    await liberarConContrato(tx);
-    await saveTx({ ...tx, estado: 'liberado' });
-    const lang = tx.lang || 'en';
-    const msg = txt(lang, 'released', { txid: txId });
-    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, msg, { parse_mode: 'Markdown' });
-    ctx.editMessageText('✅ Fondos liberados: ' + txId);
-});
-
-bot.action(/^admin_disputar_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
-    const txId = ctx.match[1];
-    const tx = await getTx(txId);
-    if (!tx) return;
-    await saveTx({ ...tx, estado: 'disputa' });
-    const lang = tx.lang || 'en';
-    const msg = txt(lang, 'disputed');
-    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-    ctx.editMessageText('⚠️ Disputa activada: ' + txId);
-});
-// BOTON: CANCELAR
-bot.action(/^cancel_(.+)$/, async (ctx) => {
-    await ctx.answerCbQuery();
-    const txId = ctx.match[1];
-    const tx = await getTx(txId);
-    if (!tx) return;
-    await saveTx({ ...tx, estado: 'cancelado' });
-    ctx.replyWithMarkdown(txt(tx.lang || 'en', 'cancelled'));
-});
-
-// BOTON: TARIFAS
-bot.action('tarifas', (ctx) => {
-    ctx.answerCbQuery();
-    ctx.replyWithMarkdown(txt(getLang(ctx), 'tarifas'));
-});
-
-// PRIVADO
-bot.action('sale_private', (ctx) => {
-    ctx.answerCbQuery();
-    ctx.replyWithMarkdown(txt(getLang(ctx), 'askSellerPrice'));
-});
-bot.action('swap_private', (ctx) => {
-    ctx.answerCbQuery();
-    const lang = getLang(ctx);
-    ctx.replyWithMarkdown(txt(lang, 'swapReady', { code: genCode(), txid: genTxId() }));
-});
-// VERIFICACION AUTOMATICA ON-CHAIN
-// VERIFICACION AUTOMATICA USDT TON
-
-async function liberarAutomatico(tx) {
-    await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
-    const lang = tx.lang || 'en';
-    const msg = txt(lang, 'released', { txid: tx.id });
-    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 *Pago verificado en blockchain.*\n' + msg, { parse_mode: 'Markdown' });
-   await notifyAdmin('✅ *Pago verificado y liberado automáticamente*\nTX: ' + tx.id + '\nImporte: $' + (tx.total_depositar || tx.total));
-}
 async function enviarUSDT(destinatario, cantidad) {
     try {
         const key = await mnemonicToPrivateKey(WALLET_MNEMONIC.split(' '));
@@ -573,9 +132,8 @@ async function enviarUSDT(destinatario, cantidad) {
         const seqno = await opened.getSeqno();
 
         const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-        
         const jettonResp = await fetch(
-            'https://tonapi.io/v2/accounts/' + 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac' + '/jettons/' + USDT_MASTER,
+            'https://tonapi.io/v2/accounts/' + WALLET_TON + '/jettons/' + USDT_MASTER,
             { headers: { 'Accept': 'application/json' } }
         );
         const jettonData = await jettonResp.json();
@@ -587,7 +145,7 @@ async function enviarUSDT(destinatario, cantidad) {
             .storeUint(0, 64)
             .storeCoins(BigInt(Math.round(cantidad * 1e6)))
             .storeAddress(Address.parse(destinatario))
-            .storeAddress(Address.parse('UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac'))
+            .storeAddress(Address.parse(WALLET_TON))
             .storeBit(false)
             .storeCoins(toNano('0.01'))
             .storeBit(false)
@@ -596,14 +154,13 @@ async function enviarUSDT(destinatario, cantidad) {
         await opened.sendTransfer({
             secretKey: key.secretKey,
             seqno,
-            messages: [
-                internal({
-                    to: Address.parseRaw(jettonWallet),
-                    value: toNano('0.05'),
-                    body: body
-                })
-            ]
+            messages: [internal({
+                to: Address.parseRaw(jettonWallet),
+                value: toNano('0.05'),
+                body: body
+            })]
         });
+        console.log('enviarUSDT OK:', cantidad, '->', destinatario);
         return true;
     } catch(e) {
         console.log('Error enviarUSDT:', e.message);
@@ -622,11 +179,12 @@ async function distribuirFondos(tx) {
             return false;
         }
 
-        await enviarUSDT(tx.vendedor_wallet, monto);
-        await new Promise(r => setTimeout(r, 3000));
-        await enviarUSDT(OWNER, fee);
-        
-        return true;
+        console.log('Distribuyendo TX:', tx.id, '| vendedor:', monto, '| fee:', fee);
+        const ok1 = await enviarUSDT(tx.vendedor_wallet, monto);
+        await new Promise(r => setTimeout(r, 15000)); // esperar 15s para evitar conflicto de seqno
+        const ok2 = await enviarUSDT(OWNER, fee);
+        console.log('Distribucion completada. Vendedor:', ok1, '| Fee:', ok2);
+        return ok1 && ok2;
     } catch(e) {
         console.log('Error distribuirFondos:', e.message);
         return false;
@@ -638,17 +196,14 @@ async function verificarPagoUSDT(tx) {
         const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
         if (!totalEsperado) return false;
 
-        const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
         const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-        
-        const url = 'https://tonapi.io/v2/accounts/' + BOT_WALLET + '/jettons/' + USDT_MASTER + '/history?limit=20';
+        const url = 'https://tonapi.io/v2/accounts/' + WALLET_TON + '/jettons/' + USDT_MASTER + '/history?limit=20';
         const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!response.ok) return false;
         const data = await response.json();
         if (!data.events) return false;
 
         const ahora = Math.floor(Date.now() / 1000);
-
         for (const event of data.events) {
             if ((ahora - event.timestamp) > 7200) continue;
             for (const action of event.actions) {
@@ -667,22 +222,33 @@ async function verificarPagoUSDT(tx) {
     }
 }
 
+// ── LIBERAR AUTOMATICO (UNA SOLA FUNCION CON GUARD) ──────────────────────────
+
 async function liberarAutomatico(tx) {
-    const ok = await distribuirFondos(tx);
-    await saveTx({ ...tx, estado: 'liberado', verificado_chain: true });
-    const lang = tx.lang || 'en';
-    const msg = txt(lang, 'released', { txid: tx.id });
-    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
-    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
-    if (tx.grupo_id) await bot.telegram.sendMessage(tx.grupo_id, '🔗 ' + msg, { parse_mode: 'Markdown' });
-    await notifyAdmin('✅ Liberado automáticamente\nTX: ' + tx.id + '\nDistribuido: ' + (ok ? 'SÍ' : 'ERROR'));
+    // GUARD: verificar estado fresco desde Supabase antes de ejecutar
+    const txActual = await getTx(tx.id);
+    if (!txActual || txActual.estado === 'liberado') {
+        console.log('TX ya liberada o no encontrada, saltando:', tx.id);
+        return;
+    }
+
+    // Marcar como liberado PRIMERO para evitar doble ejecucion
+    await saveTx({ ...txActual, estado: 'liberado', verificado_chain: true });
+
+    // Distribuir fondos
+    const ok = await distribuirFondos(txActual);
+
+    // Notificar
+    const lang = txActual.lang || 'en';
+    const msg = txt(lang, 'released', { txid: txActual.id });
+    if (txActual.comprador_id) await bot.telegram.sendMessage(txActual.comprador_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
+    if (txActual.vendedor_id) await bot.telegram.sendMessage(txActual.vendedor_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
+    if (txActual.grupo_id) await bot.telegram.sendMessage(txActual.grupo_id, '🔗 ' + msg, { parse_mode: 'Markdown' }).catch(() => {});
+    await notifyAdmin('✅ Liberado automáticamente\nTX: ' + txActual.id + '\nDistribuido: ' + (ok ? 'SÍ' : 'ERROR'));
 }
 
 async function iniciarVerificacionActiva(txId) {
     let intentos = 0;
-    const tx = await getTx(txId);
-    if (!tx) return;
-
     const intervalRapido = setInterval(async () => {
         intentos++;
         const txActual = await getTx(txId);
@@ -714,62 +280,390 @@ async function iniciarVerificacionActiva(txId) {
     }, 30000);
 }
 
-// CRON: AUTO-RELEASE cada minuto
-setInterval(async () => {
+// ── ENDPOINTS EXPRESS ─────────────────────────────────────────────────────────
+
+app.post('/liberar', async (req, res) => {
     try {
-        const ahora = new Date().toISOString();
-        const { data } = await supabase
-            .from('transacciones')
-            .select('*')
-            .eq('is_protected', true)
-            .eq('estado', 'verificando_pago')
-            .lt('auto_release_at', ahora);
-        if (data && data.length > 0) {
-            for (const tx of data) {
-                await liberarAutomatico(tx);
+        const { txId } = req.body;
+        if (!txId) return res.json({ ok: false });
+        const tx = await getTx(txId);
+        if (!tx) return res.json({ ok: false });
+        if (!tx.pago_confirmado || !tx.archivo_subido) return res.json({ ok: false, motivo: 'faltan slots' });
+        if (tx.estado === 'liberado') return res.json({ ok: true, motivo: 'ya liberado' });
+        await liberarAutomatico(tx);
+        res.json({ ok: true });
+    } catch(e) {
+        console.log('Error /liberar:', e.message);
+        res.json({ ok: false, error: e.message });
+    }
+});
+
+app.post('/ton-webhook', async (req, res) => {
+    res.sendStatus(200);
+    console.log('TON WEBHOOK RECIBIDO:', JSON.stringify(req.body));
+    try {
+        const event = req.body;
+        if (!event || !event.actions) return;
+        for (const action of event.actions) {
+            if (action.type !== 'JettonTransfer') continue;
+            const transfer = action.JettonTransfer;
+            if (!transfer) continue;
+            const amount = parseFloat(transfer.amount || '0') / 1e6;
+            const comment = transfer.comment || '';
+            if (transfer.recipient?.address !== WALLET_TON) continue;
+            const { data: tratos } = await supabase
+                .from('transacciones')
+                .select('*')
+                .eq('estado', 'verificando_pago');
+            if (!tratos) continue;
+            for (const tx of tratos) {
+                const totalEsperado = parseFloat(tx.total_depositar || tx.total || 0);
+                if (Math.abs(amount - totalEsperado) < 0.1 || comment.includes(tx.code)) {
+                    await liberarAutomatico(tx);
+                    break;
+                }
             }
         }
-    } catch(e) { console.log('Cron error:', e.message); }
-}, 60000);
+    } catch(e) {
+        console.log('Webhook error:', e.message);
+    }
+});
+
+app.get('/user', (req, res) => {
+    const initData = req.query.initData;
+    if (!initData) return res.json({ user: null });
+    try {
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+        const dataCheckString = Array.from(params.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => k + '=' + v)
+            .join('\n');
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(process.env.BOT_TOKEN).digest();
+        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+        if (calculatedHash !== hash) return res.json({ user: null });
+        const user = JSON.parse(params.get('user') || '{}');
+        res.json({ user });
+    } catch(e) {
+        res.json({ user: null });
+    }
+});
+
+app.get('/descargar/:txId', async (req, res) => {
+    try {
+        const { txId } = req.params;
+        const initData = req.query.initData;
+        if (!initData) return res.status(401).json({ error: 'No autorizado' });
+
+        // Validar initData
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+        const dataCheckString = Array.from(params.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => k + '=' + v)
+            .join('\n');
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(process.env.BOT_TOKEN).digest();
+        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+        if (calculatedHash !== hash) return res.status(401).json({ error: 'initData inválido' });
+
+        const user = JSON.parse(params.get('user') || '{}');
+        const userId = String(user.id);
+
+        const tx = await getTx(txId);
+        if (!tx) return res.status(404).json({ error: 'Trato no encontrado' });
+        if (userId !== String(tx.comprador_id)) return res.status(403).json({ error: 'Solo el comprador puede descargar' });
+        if (!tx.pago_confirmado) return res.status(403).json({ error: 'Pago no confirmado' });
+        if (!tx.archivo_path) return res.status(404).json({ error: 'No hay archivo en esta transacción' });
+
+        const { data, error } = await supabase.storage.from('Productos').createSignedUrl(tx.archivo_path, 60);
+        if (error) return res.status(500).json({ error: 'Error generando enlace de descarga' });
+
+        res.json({ url: data.signedUrl, nombre: tx.archivo_nombre });
+    } catch(e) {
+        console.log('Error /descargar:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/webhook', (req, res) => {
+    bot.handleUpdate(req.body, res);
+});
+
+app.listen(PORT, () => {
+    console.log('Mini App server running on port ' + PORT);
+});
+
+// ── BOT COMMANDS ──────────────────────────────────────────────────────────────
+
+bot.command('start', (ctx) => {
+    if (ctx.chat.type !== 'private') return;
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(txt(lang, 'welcome'), Markup.inlineKeyboard([
+        [Markup.button.callback(txt(lang, 'saleBtn'), 'sale_private')],
+        [Markup.button.callback(txt(lang, 'swapBtn'), 'swap_private')],
+        [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
+    ]));
+});
+
+bot.command('liberar', async (ctx) => {
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const txId = ctx.message.text.split(' ')[1];
+    if (!txId) return ctx.reply('Uso: /liberar VDX-XXXX');
+    const tx = await getTx(txId);
+    if (!tx) return ctx.reply('TX no encontrada: ' + txId);
+    await liberarAutomatico(tx);
+    ctx.reply('✅ Liberado: ' + txId);
+});
+
+bot.command('disputar', async (ctx) => {
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const txId = ctx.message.text.split(' ')[1];
+    if (!txId) return ctx.reply('Uso: /disputar VDX-XXXX');
+    const tx = await getTx(txId);
+    if (!tx) return ctx.reply('TX no encontrada: ' + txId);
+    await saveTx({ ...tx, estado: 'disputa' });
+    const lang = tx.lang || 'en';
+    const msg = txt(lang, 'disputed');
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    ctx.reply('⚠️ Disputa activada: ' + txId);
+});
+
+// ── MENSAJES EN GRUPOS ────────────────────────────────────────────────────────
+
+const triggers = [
+    'vendo','vender','venta','compro','comprar','precio','pago','pagar',
+    'deal','sell','buy','price','payment','swap','trueque','intercambio',
+    'cuanto','cuánto','ofrezco','busco','interesado','acuerdo','trato'
+];
+
+bot.on('message', async (ctx) => {
+    if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') return;
+    const text = ctx.message?.text;
+    if (!text) return;
+
+    const chatId = String(ctx.chat.id);
+    const userId = String(ctx.from.id);
+    const lang = getLang(ctx);
+
+    const isNumber = /^\d+([.,]\d+)?$/.test(text.trim());
+    if (isNumber) {
+        const tx = await getActiveTx(chatId);
+        if (tx) {
+            const amount = parseFloat(text.replace(',', '.'));
+            const txLang = tx.lang || 'en';
+            if (tx.estado === 'esperando_vendedor_precio') {
+                await saveTx({ ...tx, vendedor_precio: amount, vendedor_id: userId, estado: 'esperando_comprador_precio' });
+                return ctx.replyWithMarkdown(txt(txLang, 'askBuyerPrice') + '\n\n_TX: ' + tx.id + '_');
+            }
+            if (tx.estado === 'esperando_comprador_precio') {
+                if (userId === tx.vendedor_id) return ctx.replyWithMarkdown('❌ El vendedor no puede actuar como comprador en el mismo trato.');
+                if (amount !== tx.vendedor_precio) {
+                    return ctx.replyWithMarkdown(txt(txLang, 'priceMismatch', {
+                        seller: tx.vendedor_precio.toFixed(2),
+                        buyer: amount.toFixed(2)
+                    }));
+                }
+                const fee = calcFee(amount);
+                const total = parseFloat((amount + fee).toFixed(2));
+                await saveTx({ ...tx, comprador_precio: amount, comprador_id: userId, fee, total, estado: 'esperando_quien_paga' });
+                return ctx.replyWithMarkdown(
+                    txt(txLang, 'priceMatch', { amount: amount.toFixed(2), fee: fee.toFixed(2), total: total.toFixed(2), code: tx.code }),
+                    Markup.inlineKeyboard([
+                        [Markup.button.callback(txt(txLang, 'buyerPays'), 'fee_buyer_' + tx.id)],
+                        [Markup.button.callback(txt(txLang, 'sellerPays'), 'fee_seller_' + tx.id)],
+                        [Markup.button.callback(txt(txLang, 'splitPays'), 'fee_split_' + tx.id)]
+                    ])
+                );
+            }
+            return;
+        }
+    }
+
+    const lower = text.toLowerCase();
+    const isTrigger = triggers.some(t => lower.includes(t));
+    if (isTrigger) {
+        const txId = genTxId();
+        const code = genCode();
+        await saveTx({
+            id: txId,
+            grupo_id: String(ctx.chat.id),
+            vendedor_telegram_id: userId,
+            vendedor_nombre: ctx.from.first_name || ctx.from.username || 'Vendedor',
+            estado: 'nuevo',
+            lang,
+            code,
+            tipo: 'pendiente'
+        });
+        const miniAppUrl = 'https://t.me/VandoxSafeBot/app?startapp=' + txId;
+        return ctx.reply('🛡️ Vandox Safe — ' + (lang === 'es' ? 'Trato detectado' : 'Deal detected'), {
+            reply_markup: {
+                inline_keyboard: [[{ text: '🔒 ' + (lang === 'es' ? 'Custodiar este trato' : 'Secure this deal'), url: miniAppUrl }]]
+            }
+        });
+    }
+});
+
+// ── BOT ACTIONS ───────────────────────────────────────────────────────────────
+
+bot.action('start_deal', async (ctx) => {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(txt(lang, 'welcome'), Markup.inlineKeyboard([
+        [Markup.button.callback(txt(lang, 'saleBtn'), 'start_sale')],
+        [Markup.button.callback(txt(lang, 'swapBtn'), 'start_swap')],
+        [Markup.button.callback(txt(lang, 'tarifasBtn'), 'tarifas')]
+    ]));
+});
+
+bot.action('start_sale', async (ctx) => {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    const txId = genTxId();
+    const code = genCode();
+    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'esperando_vendedor_precio', lang, code, tipo: 'venta' });
+    const miniAppUrl = 'https://t.me/VandoxSafeBot/app?startapp=' + txId;
+    ctx.replyWithMarkdown(
+        txt(lang, 'askSellerPrice') + '\n\n_TX: ' + txId + '_',
+        Markup.inlineKeyboard([[{ text: '🛡️ Open Vandox Safe', web_app: { url: miniAppUrl } }]])
+    );
+});
+
+bot.action('start_swap', async (ctx) => {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    const txId = genTxId();
+    const code = genCode();
+    await saveTx({ id: txId, grupo_id: String(ctx.chat.id), estado: 'swap_iniciado', lang, code, tipo: 'swap', fee: 1.00 });
+    ctx.replyWithMarkdown(txt(lang, 'swapReady', { code, txid: txId }));
+    await notifyAdmin('🔄 Nuevo swap\nTX: ' + txId + '\nGrupo: ' + ctx.chat.id);
+});
+
+bot.action(/^fee_(buyer|seller|split)_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const who = ctx.match[1];
+    const txId = ctx.match[2];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    const lang = tx.lang || 'en';
+    let total = tx.comprador_precio;
+    if (who === 'buyer') total = parseFloat((tx.comprador_precio + tx.fee).toFixed(2));
+    else if (who === 'split') total = parseFloat((tx.comprador_precio + tx.fee / 2).toFixed(2));
+    await saveTx({ ...tx, quien_paga_fee: who, total_depositar: total, estado: 'esperando_pago' });
+    ctx.replyWithMarkdown(
+        txt(lang, 'payInstructions', { total: total.toFixed(2), wallet: WALLET_TON, code: tx.code, txid: txId }),
+        Markup.inlineKeyboard([
+            [Markup.button.callback(txt(lang, 'paidBtn'), 'paid_' + txId)],
+            [Markup.button.callback(txt(lang, 'cancelBtn'), 'cancel_' + txId)]
+        ])
+    );
+});
+
+bot.action(/^paid_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    const lang = tx.lang || 'en';
+    await saveTx({ ...tx, estado: 'verificando_pago' });
+    iniciarVerificacionActiva(txId);
+    ctx.replyWithMarkdown(txt(lang, 'paidNotif'));
+    try {
+        await bot.telegram.sendMessage(ADMIN_ID, txt(lang, 'adminNotif', {
+            txid: txId,
+            total: String(tx.total_depositar || tx.total || '?'),
+            code: tx.code,
+            group: tx.grupo_id
+        }), {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '✅ Liberar fondos', callback_data: 'admin_liberar_' + txId },
+                    { text: '⚠️ Disputar', callback_data: 'admin_disputar_' + txId }
+                ]]
+            }
+        });
+    } catch(e) { console.log('Admin error:', e.message); }
+});
+
+bot.action(/^admin_liberar_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    await liberarAutomatico(tx);
+    ctx.editMessageText('✅ Fondos liberados: ' + txId);
+});
+
+bot.action(/^admin_disputar_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (String(ctx.from.id) !== String(ADMIN_ID)) return;
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    await saveTx({ ...tx, estado: 'disputa' });
+    const lang = tx.lang || 'en';
+    const msg = txt(lang, 'disputed');
+    if (tx.comprador_id) await bot.telegram.sendMessage(tx.comprador_id, msg, { parse_mode: 'Markdown' });
+    if (tx.vendedor_id) await bot.telegram.sendMessage(tx.vendedor_id, msg, { parse_mode: 'Markdown' });
+    ctx.editMessageText('⚠️ Disputa activada: ' + txId);
+});
+
+bot.action(/^cancel_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const txId = ctx.match[1];
+    const tx = await getTx(txId);
+    if (!tx) return;
+    await saveTx({ ...tx, estado: 'cancelado' });
+    ctx.replyWithMarkdown(txt(tx.lang || 'en', 'cancelled'));
+});
+
+bot.action('tarifas', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithMarkdown(txt(getLang(ctx), 'tarifas'));
+});
+
+bot.action('sale_private', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithMarkdown(txt(getLang(ctx), 'askSellerPrice'));
+});
+
+bot.action('swap_private', (ctx) => {
+    ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    ctx.replyWithMarkdown(txt(lang, 'swapReady', { code: genCode(), txid: genTxId() }));
+});
+
+// ── WEBHOOK TONAPI ────────────────────────────────────────────────────────────
+
 async function registrarWebhookTonAPI() {
     try {
         const res1 = await fetch('https://rt.tonapi.io/webhooks', {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                endpoint: 'https://vandox-bot-production.up.railway.app/ton-webhook'
-            })
+            headers: { 'Authorization': 'Bearer ' + process.env.TONAPI_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: 'https://vandox-bot-production.up.railway.app/ton-webhook' })
         });
         const webhook = await res1.json();
         console.log('Webhook creado:', JSON.stringify(webhook));
         if (!webhook.webhook_id) return;
-
         const res2 = await fetch('https://rt.tonapi.io/webhooks/' + webhook.webhook_id + '/account-tx/subscribe', {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + process.env.TONAPI_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                accounts: [{ account_id: '0:ee00cefe83b3fe18618f5d7db5599cc6fb4c895fbf5e2f33fdeaab1a269ffa30' }]
-            })
+            headers: { 'Authorization': 'Bearer ' + process.env.TONAPI_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accounts: [{ account_id: '0:ee00cefe83b3fe18618f5d7db5599cc6fb4c895fbf5e2f33fdeaab1a269ffa30' }] })
         });
-       console.log('Suscripcion status:', res2.status);
-        console.log('Suscripcion ok:', res2.ok);
         if (res2.ok) console.log('Webhook suscrito correctamente a la hot wallet');
     } catch(e) {
         console.log('Error webhook:', e.message);
     }
 }
-setTimeout(() => {
-    registrarWebhookTonAPI();
-}, 5000);
-app.post('/webhook', (req, res) => {
-    bot.handleUpdate(req.body, res);
-});
+
+setTimeout(() => { registrarWebhookTonAPI(); }, 5000);
+
+// ── LAUNCH ────────────────────────────────────────────────────────────────────
+
 bot.launch().then(() => {
     console.log('Bot Vandox iniciado con éxito');
 }).catch((err) => {
