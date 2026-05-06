@@ -259,12 +259,11 @@ async function liberarAutomatico(tx) {
 
     console.log('Lock adquirido para TX:', tx.id, '— distribuyendo fondos...');
 
-await supabase
-    .from('transacciones')
-    .update({ estado: 'liberado', verificado_chain: true, liberado_at: new Date().toISOString() })
-    .eq('id', tx.id);
+    // Marcar liberado ANTES de distribuir — igual que v2.1
+    await saveTx({ ...locked, estado: 'liberado', verificado_chain: true });
 
-const ok = await distribuirFondos(locked);
+    const ok = await distribuirFondos(locked);
+
     const lang = locked.lang || 'en';
     const msg = txt(lang, 'released', { txid: locked.id });
     if (locked.comprador_id) await bot.telegram.sendMessage(locked.comprador_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
