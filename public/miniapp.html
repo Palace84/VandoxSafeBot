@@ -582,9 +582,11 @@ function updateVaultState(estado, pagoConfirmado, archivoSubido) {
         document.getElementById('deal-badge').innerHTML = '<span class="dot"></span> Esperando pago';
         document.getElementById('deal-badge').className = 'badge b-amber';
         document.getElementById('progress-fill').style.width = '25%';
-        slotMoney.className = 'vslot pending';
-        moneyStatus.className = 'slot-status wait';
-        moneyStatus.textContent = 'Pendiente';
+       if (!pagoConfirmado) {
+    slotMoney.className = 'vslot pending';
+    moneyStatus.className = 'slot-status wait';
+    moneyStatus.textContent = 'Pendiente';
+}
         if (!archivoSubido) productStatus.textContent = 'Pendiente';
         document.getElementById('sd2').className = 'step-dot active';
         if (userRole === 'buyer' && !pagoConfirmado) payCard.style.display = 'block';
@@ -783,9 +785,7 @@ setInterval(async () => {
 if (data.estado === 'liberado') {
     renderDeal(data);
 }
-    if (data.estado === 'liberado') {
-        renderDeal(data);
-    }
+
 }, 5000);
 
 loadDeal();
