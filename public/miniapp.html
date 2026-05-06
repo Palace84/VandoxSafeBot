@@ -194,7 +194,6 @@ input[type=number]:focus{border-color:#00c896}
     <div style="text-align:center;margin-top:12px">
       <span class="badge b-amber" id="deal-badge"><span class="dot"></span> Esperando pago</span>
     </div>
-    <!-- Botón editar precio (solo vendedor, solo si no pagado) -->
     <div id="edit-price-wrap" style="display:none;text-align:center">
       <button class="btn-edit" onclick="mostrarEditarPrecio()">✏️ Editar precio</button>
     </div>
@@ -240,7 +239,6 @@ input[type=number]:focus{border-color:#00c896}
     <div class="info-row"><span class="info-label">Comprador</span><span class="info-value" id="val-buyer-name" style="color:#3b82f6">-</span></div>
   </div>
 
-  <!-- Ficha del producto (comprador, si archivo ya subido) -->
   <div class="card" id="product-ficha-card" style="display:none">
     <div class="card-title">📦 Producto en bóveda</div>
     <div class="product-card">
@@ -259,14 +257,12 @@ input[type=number]:focus{border-color:#00c896}
     <button class="btn-download" id="btn-download" disabled onclick="descargarArchivo()">🔒 Bloqueado hasta el pago</button>
   </div>
 
-  <!-- PAGO (comprador) -->
   <div class="card" id="payment-card" style="display:none">
     <div class="card-title">Pagar con wallet TON</div>
     <div id="ton-connect-btn"></div>
     <button class="btn-pay" onclick="pagarConWallet()" id="btn-paid" style="margin-top:12px;display:none">💳 Pagar ahora</button>
   </div>
 
-  <!-- SUBIDA (vendedor) -->
   <div class="card" id="upload-card" style="display:none">
     <div class="card-title">Sube tu producto</div>
     <div class="alert alert-warn" style="margin-bottom:12px">
@@ -285,7 +281,6 @@ input[type=number]:focus{border-color:#00c896}
     </div>
   </div>
 
-  <!-- VENDEDOR: esperando pago del comprador -->
   <div class="card" id="seller-waiting-msg" style="display:none">
     <div class="alert alert-success">
       <span>✅</span>
@@ -294,7 +289,6 @@ input[type=number]:focus{border-color:#00c896}
     <div id="seller-ton-btn" style="margin-top:8px"></div>
   </div>
 
-  <!-- EDITAR PRECIO (modal inline) -->
   <div class="card" id="edit-price-card" style="display:none">
     <div class="card-title">✏️ Editar precio</div>
     <input type="number" id="edit-price-input" placeholder="Nuevo precio en USD">
@@ -333,7 +327,7 @@ if (tg) tg.ready();
 
 var currentTx = null;
 var txId = null;
-var userRole = null; // 'seller' | 'buyer'
+var userRole = null;
 var myTgId = null;
 
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -379,14 +373,11 @@ function getTxIdFromUrl() {
     return null;
 }
 
-// ── DETERMINAR ROL (con bloqueo de roles) ────────────────────────────────────
-// Si vendedor_telegram_id ya está ocupado y no soy yo → soy comprador obligatoriamente
-// Si no hay vendedor asignado → soy vendedor
 function determinarRol(tx) {
     const vendedorId = tx.vendedor_telegram_id || tx.vendedor_id;
     if (vendedorId && String(vendedorId) === String(myTgId)) return 'seller';
-    if (vendedorId) return 'buyer'; // ya hay vendedor y no soy yo
-    return 'seller'; // no hay vendedor, lo asumo
+    if (vendedorId) return 'buyer';
+    return 'seller';
 }
 
 async function loadDeal() {
@@ -401,7 +392,6 @@ async function loadDeal() {
     currentTx = data;
     userRole = determinarRol(data);
 
-    // Si soy vendedor y no estoy registrado aún, registrarme
     if (userRole === 'seller' && !data.vendedor_telegram_id && myTgId) {
         await db.from('transacciones').update({
             vendedor_telegram_id: myTgId,
@@ -410,13 +400,11 @@ async function loadDeal() {
         }).eq('id', txId);
     }
 
-    // Mover TonConnect al lugar correcto según rol
     if (userRole === 'seller') {
         const sellerBtn = document.getElementById('seller-ton-btn');
         if (sellerBtn) sellerBtn.appendChild(document.getElementById('ton-connect-btn'));
     }
 
-    // Si soy comprador, guardar nombre
     if (userRole === 'buyer' && myTgId && !data.comprador_nombre) {
         await db.from('transacciones').update({
             comprador_nombre: tg?.initDataUnsafe?.user?.first_name || 'Comprador',
@@ -424,7 +412,6 @@ async function loadDeal() {
         }).eq('id', txId);
     }
 
-    // ROUTING según estado
     const estado = data.estado;
 
     if (['nuevo', 'configurando', 'pendiente'].includes(estado) && userRole === 'seller') {
@@ -433,13 +420,11 @@ async function loadDeal() {
     }
 
     if (estado === 'esperando_comprador_precio' && userRole === 'buyer') {
-        // Comprador ve el precio propuesto y solo confirma
         mostrarConfirmacionComprador(data);
         return;
     }
 
     if (['esperando_comprador_precio', 'configurando'].includes(estado) && userRole === 'seller') {
-        // Vendedor espera al comprador
         goTo('s-price');
         document.getElementById('price-role-info').textContent = 'Precio declarado. Esperando al comprador...';
         document.getElementById('price-input').value = data.vendedor_precio || '';
@@ -448,14 +433,16 @@ async function loadDeal() {
     }
 
     if (['nuevo', 'configurando', 'pendiente'].includes(estado) && userRole === 'buyer') {
-        // Esperar a que vendedor configure
         document.getElementById('loading-text').textContent = 'Esperando al vendedor...';
         goTo('s-loading');
         return;
     }
 
+    // ── FIX 1: No llamar goTo('s-deal') si ya está liberado ──
     renderDeal(data);
-    goTo('s-deal');
+    if (data.estado !== 'liberado' && data.estado !== 'liberando') {
+        goTo('s-deal');
+    }
 }
 
 function mostrarConfirmacionComprador(tx) {
@@ -465,7 +452,6 @@ function mostrarConfirmacionComprador(tx) {
     document.getElementById('buyer-amount').textContent = '$' + amount.toFixed(2);
     document.getElementById('buyer-fee').textContent = '+ $' + fee.toFixed(2) + ' tarifa Vandox';
     document.getElementById('buyer-total').textContent = 'Total: $' + total.toFixed(2) + ' USDT';
-    // Mostrar ficha si hay archivo subido
     if (tx.archivo_nombre) {
         const ext = tx.archivo_extension || tx.archivo_nombre.split('.').pop().toUpperCase();
         document.getElementById('buyer-prod-icon').textContent = getExtIcon(ext);
@@ -485,12 +471,10 @@ async function aceptarTrato() {
     const amount = parseFloat(currentTx.vendedor_precio || 0);
     const fee = calcFee(amount);
     const total = parseFloat((amount + fee).toFixed(2));
-    const compradorId = myTgId;
-    const compradorNombre = tg?.initDataUnsafe?.user?.first_name || 'Comprador';
     await db.from('transacciones').update({
         comprador_precio: amount,
-        comprador_id: compradorId,
-        comprador_nombre: compradorNombre,
+        comprador_id: myTgId,
+        comprador_nombre: tg?.initDataUnsafe?.user?.first_name || 'Comprador',
         fee,
         total_depositar: total,
         estado: 'esperando_pago'
@@ -513,7 +497,6 @@ function renderDeal(tx) {
     document.getElementById('val-txid').textContent = tx.id || '-';
     document.getElementById('val-vendor').textContent = tx.vendedor_nombre || 'Vendedor';
     document.getElementById('val-buyer-name').textContent = tx.comprador_nombre || 'Esperando...';
-    // Botón editar precio: solo vendedor, solo si no pagado
     const editWrap = document.getElementById('edit-price-wrap');
     const estadosEditables = ['nuevo','configurando','esperando_comprador_precio','esperando_pago'];
     if (userRole === 'seller' && estadosEditables.includes(tx.estado) && !tx.pago_confirmado) {
@@ -569,7 +552,6 @@ function updateVaultState(estado, pagoConfirmado, archivoSubido) {
         productStatus.textContent = 'Subido ✓';
     }
 
-    // Si ambos slots llenos y no liberado aún → llamar liberar
     if (pagoConfirmado && archivoSubido && estado !== 'liberado' && estado !== 'liberando') {
         fetch(SERVER + '/liberar', {
             method: 'POST',
@@ -599,9 +581,7 @@ function updateVaultState(estado, pagoConfirmado, archivoSubido) {
         slotMoney.className = 'vslot pending';
         moneyStatus.className = 'slot-status wait';
         moneyStatus.textContent = 'Pendiente';
-        if (!archivoSubido) {
-            productStatus.textContent = 'Pendiente';
-        }
+        if (!archivoSubido) productStatus.textContent = 'Pendiente';
         document.getElementById('sd2').className = 'step-dot active';
         if (userRole === 'buyer' && !pagoConfirmado) payCard.style.display = 'block';
         if (userRole === 'seller') {
@@ -617,8 +597,6 @@ function updateVaultState(estado, pagoConfirmado, archivoSubido) {
         if (userRole === 'seller') sellerMsg.style.display = 'block';
     }
 }
-
-// ── PAGO CON TONCONNECT ───────────────────────────────────────────────────────
 
 async function pagarConWallet() {
     const wallet = tonConnectUI.wallet;
@@ -654,8 +632,6 @@ async function pagarConWallet() {
         updateVaultState('verificando_pago', true, currentTx.archivo_subido);
     } catch(e) { alert('Error: ' + e.message); }
 }
-
-// ── SUBIDA A SUPABASE STORAGE ─────────────────────────────────────────────────
 
 async function handleFileUpload(event) {
     const file = event.target.files[0];
@@ -707,8 +683,6 @@ async function handleFileUpload(event) {
     renderDeal(currentTx);
 }
 
-// ── DESCARGA SEGURA ───────────────────────────────────────────────────────────
-
 async function descargarArchivo() {
     try {
         const initData = tg?.initData;
@@ -719,8 +693,6 @@ async function descargarArchivo() {
         window.open(data.url, '_blank');
     } catch(e) { alert('Error: ' + e.message); }
 }
-
-// ── EDITAR PRECIO ─────────────────────────────────────────────────────────────
 
 function mostrarEditarPrecio() {
     document.getElementById('edit-price-card').style.display = 'block';
@@ -756,8 +728,6 @@ async function guardarPrecio() {
     alert('✅ Precio actualizado a $' + nuevoPrecio.toFixed(2));
 }
 
-// ── SETUP TIPO ────────────────────────────────────────────────────────────────
-
 async function selectType(type) {
     await db.from('transacciones').update({ tipo: type, estado: 'esperando_comprador_precio' }).eq('id', txId);
     goTo('s-price');
@@ -790,24 +760,20 @@ setInterval(async () => {
     const changed = data.estado !== currentTx.estado || data.archivo_subido !== currentTx.archivo_subido || data.pago_confirmado !== currentTx.pago_confirmado;
     if (!changed) return;
     currentTx = data;
-    // Routing por estado actualizado
     if (data.estado === 'esperando_comprador_precio' && userRole === 'buyer') {
         mostrarConfirmacionComprador(data);
         return;
     }
-    if (['esperando_pago','verificando_pago','entregado','liberado','liberando'].includes(data.estado)) {
+    // ── FIX 2: No llamar goTo('s-deal') si está liberado ──
+    if (['esperando_pago','verificando_pago','entregado'].includes(data.estado)) {
         renderDeal(data);
         goTo('s-deal');
     }
     if (data.estado === 'liberado') {
-        goTo('s-success');
-        if (userRole === 'buyer' && data.archivo_nombre) {
-            document.getElementById('success-download-wrap').style.display = 'block';
-        }
+        renderDeal(data);
     }
 }, 5000);
 
-// ── INICIO ────────────────────────────────────────────────────────────────────
 loadDeal();
 </script>
 </body>
