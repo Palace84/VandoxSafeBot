@@ -62,6 +62,23 @@ async function getActiveTx(chatId) {
     return data?.[0] || null;
 }
 
+// Valida initData de Telegram — devuelve user o null
+function validarInitData(initData) {
+    try {
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+        const dataCheckString = Array.from(params.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => k + '=' + v)
+            .join('\n');
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(process.env.BOT_TOKEN).digest();
+        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+        if (calculatedHash !== hash) return null;
+        return JSON.parse(params.get('user') || '{}');
+    } catch(e) { return null; }
+}
+
 // ── TEXTOS ───────────────────────────────────────────────────────────────────
 
 function txt(lang, key, vars) {
@@ -168,20 +185,22 @@ async function enviarUSDT(destinatario, cantidad) {
     }
 }
 
+// ── DISTRIBUIR FONDOS — Lee datos frescos de Supabase para tener vendedor_wallet actualizado
 async function distribuirFondos(tx) {
     try {
         const txFresca = await getTx(tx.id);
         const monto = parseFloat(txFresca.comprador_precio || 0);
         const fee = parseFloat(txFresca.fee || 0);
         const OWNER = process.env.OWNER_WALLET;
+
         if (!txFresca.vendedor_wallet) {
-            console.log('Sin wallet de vendedor para TX:', tx.id);
+            console.log('Sin wallet de vendedor para TX:', txFresca.id);
             return false;
         }
 
-        console.log('Distribuyendo TX:', tx.id, '| vendedor:', monto, '| fee:', fee);
+        console.log('Distribuyendo TX:', txFresca.id, '| vendedor:', monto, '| fee:', fee);
         const ok1 = await enviarUSDT(txFresca.vendedor_wallet, monto);
-        await new Promise(r => setTimeout(r, 15000)); // esperar 15s para evitar conflicto de seqno
+        await new Promise(r => setTimeout(r, 15000));
         const ok2 = await enviarUSDT(OWNER, fee);
         console.log('Distribucion completada. Vendedor:', ok1, '| Fee:', ok2);
         return ok1 && ok2;
@@ -222,12 +241,9 @@ async function verificarPagoUSDT(tx) {
     }
 }
 
-// ── LIBERAR AUTOMATICO (UNA SOLA FUNCION CON GUARD) ──────────────────────────
+// ── LIBERAR AUTOMATICO — MUTEX ATOMICO ───────────────────────────────────────
 
 async function liberarAutomatico(tx) {
-    // MUTEX ATOMICO: solo una instancia puede ganar el lock
-    // Supabase ejecuta este UPDATE de forma atomica
-    // Si el estado ya es 'liberando' o 'liberado', no actualiza ninguna fila
     const { data: locked, error: lockError } = await supabase
         .from('transacciones')
         .update({ estado: 'liberando' })
@@ -242,17 +258,13 @@ async function liberarAutomatico(tx) {
     }
 
     console.log('Lock adquirido para TX:', tx.id, '— distribuyendo fondos...');
-
-    // Distribuir fondos con los datos frescos del lock
     const ok = await distribuirFondos(locked);
 
-    // Marcar como liberado definitivamente
     await supabase
         .from('transacciones')
-        .update({ estado: 'liberado', verificado_chain: true })
+        .update({ estado: 'liberado', verificado_chain: true, liberado_at: new Date().toISOString() })
         .eq('id', tx.id);
 
-    // Notificar a las partes
     const lang = locked.lang || 'en';
     const msg = txt(lang, 'released', { txid: locked.id });
     if (locked.comprador_id) await bot.telegram.sendMessage(locked.comprador_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
@@ -346,22 +358,8 @@ app.post('/ton-webhook', async (req, res) => {
 app.get('/user', (req, res) => {
     const initData = req.query.initData;
     if (!initData) return res.json({ user: null });
-    try {
-        const params = new URLSearchParams(initData);
-        const hash = params.get('hash');
-        params.delete('hash');
-        const dataCheckString = Array.from(params.entries())
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([k, v]) => k + '=' + v)
-            .join('\n');
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(process.env.BOT_TOKEN).digest();
-        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-        if (calculatedHash !== hash) return res.json({ user: null });
-        const user = JSON.parse(params.get('user') || '{}');
-        res.json({ user });
-    } catch(e) {
-        res.json({ user: null });
-    }
+    const user = validarInitData(initData);
+    res.json({ user });
 });
 
 app.get('/descargar/:txId', async (req, res) => {
@@ -369,34 +367,48 @@ app.get('/descargar/:txId', async (req, res) => {
         const { txId } = req.params;
         const initData = req.query.initData;
         if (!initData) return res.status(401).json({ error: 'No autorizado' });
-
-        // Validar initData
-        const params = new URLSearchParams(initData);
-        const hash = params.get('hash');
-        params.delete('hash');
-        const dataCheckString = Array.from(params.entries())
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([k, v]) => k + '=' + v)
-            .join('\n');
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(process.env.BOT_TOKEN).digest();
-        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-        if (calculatedHash !== hash) return res.status(401).json({ error: 'initData inválido' });
-
-        const user = JSON.parse(params.get('user') || '{}');
+        const user = validarInitData(initData);
+        if (!user || !user.id) return res.status(401).json({ error: 'initData inválido' });
         const userId = String(user.id);
-
         const tx = await getTx(txId);
         if (!tx) return res.status(404).json({ error: 'Trato no encontrado' });
         if (userId !== String(tx.comprador_id)) return res.status(403).json({ error: 'Solo el comprador puede descargar' });
         if (!tx.pago_confirmado) return res.status(403).json({ error: 'Pago no confirmado' });
         if (!tx.archivo_path) return res.status(404).json({ error: 'No hay archivo en esta transacción' });
-
         const { data, error } = await supabase.storage.from('Productos').createSignedUrl(tx.archivo_path, 60);
         if (error) return res.status(500).json({ error: 'Error generando enlace de descarga' });
-
         res.json({ url: data.signedUrl, nombre: tx.archivo_nombre });
     } catch(e) {
         console.log('Error /descargar:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Permite al vendedor editar el precio mientras el comprador no haya aceptado
+app.post('/precio', async (req, res) => {
+    try {
+        const { txId, precio, initData } = req.body;
+        if (!initData) return res.status(401).json({ error: 'No autorizado' });
+        const user = validarInitData(initData);
+        if (!user || !user.id) return res.status(401).json({ error: 'initData inválido' });
+        const userId = String(user.id);
+        const tx = await getTx(txId);
+        if (!tx) return res.status(404).json({ error: 'Trato no encontrado' });
+        if (userId !== String(tx.vendedor_telegram_id) && userId !== String(tx.vendedor_id)) {
+            return res.status(403).json({ error: 'Solo el vendedor puede editar el precio' });
+        }
+        const estadosEditables = ['nuevo', 'configurando', 'esperando_comprador_precio', 'esperando_pago'];
+        if (!estadosEditables.includes(tx.estado)) {
+            return res.status(403).json({ error: 'El precio ya no se puede editar' });
+        }
+        const amount = parseFloat(precio);
+        if (isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Precio inválido' });
+        const fee = calcFee(amount);
+        const total = parseFloat((amount + fee).toFixed(2));
+        await saveTx({ ...tx, vendedor_precio: amount, fee, total_depositar: total, comprador_precio: null, estado: 'esperando_comprador_precio' });
+        res.json({ ok: true, fee, total });
+    } catch(e) {
+        console.log('Error /precio:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
