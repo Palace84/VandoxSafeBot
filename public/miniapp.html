@@ -338,8 +338,12 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
 tonConnectUI.onStatusChange(async wallet => {
     const btn = document.getElementById('btn-paid');
     if (btn) btn.style.display = wallet ? 'block' : 'none';
-    if (wallet && txId && userRole === 'seller') {
-        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
+    if (wallet && txId) {
+        const { data: txData } = await db.from('transacciones').select('vendedor_telegram_id,vendedor_id').eq('id', txId).single();
+        const esVendedor = txData && myTgId && (String(txData.vendedor_telegram_id) === String(myTgId) || String(txData.vendedor_id) === String(myTgId));
+        if (esVendedor) {
+            await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
+        }
     }
 });
 
