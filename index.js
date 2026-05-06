@@ -315,8 +315,12 @@ app.post('/liberar', async (req, res) => {
         const tx = await getTx(txId);
         if (!tx) return res.json({ ok: false });
         if (!tx.pago_confirmado || !tx.archivo_subido) return res.json({ ok: false, motivo: 'faltan slots' });
-        if (tx.estado === 'liberado') return res.json({ ok: true, motivo: 'ya liberado' });
-        await liberarAutomatico(tx);
+       if (tx.estado === 'liberado') return res.json({ ok: true, motivo: 'ya liberado' });
+if (tx.estado === 'liberando') {
+    await supabase.from('transacciones').update({ estado: 'liberado', verificado_chain: true, liberado_at: new Date().toISOString() }).eq('id', tx.id);
+    return res.json({ ok: true, motivo: 'liberando completado' });
+}
+await liberarAutomatico(tx);
         res.json({ ok: true });
     } catch(e) {
         console.log('Error /liberar:', e.message);
