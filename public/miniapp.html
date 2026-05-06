@@ -13,25 +13,23 @@
 body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-direction:column}
 .header{padding:1rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e2d45}
 .logo{width:36px;height:36px;background:#00c896;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
-.logo-text{font-size:17px;font-weight:700;color:#f1f5f9}
+.logo-text{font-size:17px;font-weight:700}
 .logo-sub{font-size:11px;color:#94a3b8}
 .screen{display:none;flex-direction:column;gap:1rem;padding:1rem;flex:1}
 .screen.active{display:flex}
 .card{background:#1a2235;border:1px solid #2d3748;border-radius:14px;padding:1.25rem}
 .card-title{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px}
-.deal-amount{font-size:32px;font-weight:700;color:#00c896;text-align:center;padding:1rem 0}
-.deal-desc{font-size:14px;color:#94a3b8;text-align:center;margin-top:-8px}
+.deal-amount{font-size:32px;font-weight:700;color:#00c896;text-align:center;padding:.75rem 0}
+.deal-desc{font-size:14px;color:#94a3b8;text-align:center;margin-top:-6px}
 .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1e2d45}
 .info-row:last-child{border-bottom:none}
 .info-label{font-size:13px;color:#94a3b8}
 .info-value{font-size:13px;font-weight:600;color:#f1f5f9}
 .info-value.green{color:#00c896}
-.info-value.amber{color:#f59e0b}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
 .b-green{background:rgba(0,200,150,0.12);color:#00c896;border:1px solid #00c896}
 .b-amber{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid #f59e0b}
 .b-blue{background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid #3b82f6}
-.b-red{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid #ef4444}
 .dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
 .vault{background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem}
 .vault-slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;margin-top:8px}
@@ -41,8 +39,7 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 .slot-icon{font-size:20px}
 .slot-label{font-size:11px;color:#94a3b8}
 .slot-status{font-size:11px;font-weight:600}
-.ok{color:#00c896}
-.wait{color:#f59e0b}
+.ok{color:#00c896}.wait{color:#f59e0b}
 .vdiv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;background:#0a0f1e;border:1px solid #2d3748;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;z-index:1}
 .progress{background:#1a2235;border-radius:100px;height:6px;overflow:hidden;margin-top:8px}
 .progress-fill{height:100%;background:#00c896;border-radius:100px;transition:width 0.5s}
@@ -52,55 +49,46 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
 .step-dot.done{background:#00c896}
 .step-dot.active{background:#f59e0b}
 .step-label{font-size:9px;color:#94a3b8}
-.wallet-box{background:#0a0f1e;border:1px solid #2d3748;border-radius:10px;padding:10px 14px}
-.wallet-label{font-size:11px;color:#94a3b8;margin-bottom:4px}
-.wallet-addr{font-size:11px;color:#f1f5f9;word-break:break-all;line-height:1.5}
-.copy-btn{background:rgba(0,200,150,0.12);border:1px solid #00c896;border-radius:8px;padding:5px 12px;font-size:12px;color:#00c896;cursor:pointer;margin-top:6px;width:100%}
-.btn-pay{width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e;margin-top:auto}
+.btn-pay{width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e}
 .btn-secondary{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #2d3748;background:#1a2235;color:#f1f5f9}
 .btn-danger{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;margin-top:8px}
 .btn-download{width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;border:none;background:#3b82f6;color:white;margin-top:12px}
 .btn-download:disabled{background:#1a2235;color:#475569;border:1px solid #2d3748;cursor:not-allowed}
-.ton-connect{width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:none;background:#0088cc;color:white;display:flex;align-items:center;justify-content:center;gap:8px}
-.connected-wallet{background:#1a2235;border:1px solid #00c896;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between}
-.connected-info{font-size:12px;color:#94a3b8}
-.connected-addr{font-size:13px;font-weight:600;color:#00c896}
-.disconnect-btn{font-size:11px;color:#ef4444;cursor:pointer;background:none;border:none}
-.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.mode-btn{padding:10px;border-radius:10px;text-align:center;cursor:pointer;border:1px solid #2d3748;background:#0a0f1e;font-size:13px;color:#94a3b8}
-.mode-btn.active{border-color:#00c896;color:#00c896;background:rgba(0,200,150,0.08)}
+.btn-edit{background:none;border:1px solid #475569;border-radius:8px;padding:6px 12px;font-size:12px;color:#94a3b8;cursor:pointer;margin-top:8px}
+.btn-edit:hover{border-color:#00c896;color:#00c896}
 .loading{text-align:center;padding:3rem;color:#94a3b8}
 .loading-icon{font-size:32px;margin-bottom:1rem;animation:spin 1s linear infinite}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.error-screen{text-align:center;padding:3rem 1rem}
-.error-icon{font-size:48px;margin-bottom:1rem}
-.error-title{font-size:18px;font-weight:700;margin-bottom:8px}
-.error-sub{font-size:14px;color:#94a3b8}
 .success-screen{text-align:center;padding:3rem 1rem}
 .success-icon{width:80px;height:80px;background:rgba(0,200,150,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:36px;border:1px solid #00c896}
 .success-title{font-size:22px;font-weight:700;margin-bottom:8px}
 .success-sub{font-size:14px;color:#94a3b8;line-height:1.6}
 .alert{border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
-.alert-info{background:rgba(59,130,246,0.12);border:1px solid #3b82f6;color:#94a3b8}
 .alert-warn{background:rgba(245,158,11,0.12);border:1px solid #f59e0b;color:#94a3b8}
 .alert-success{background:rgba(0,200,150,0.12);border:1px solid #00c896;color:#94a3b8}
+.alert-info{background:rgba(59,130,246,0.12);border:1px solid #3b82f6;color:#94a3b8}
 .alert strong{color:#f1f5f9}
-
-/* FICHA DEL PRODUCTO */
 .product-card{background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem;margin-bottom:12px}
 .product-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .product-icon{font-size:28px}
-.product-name{font-size:14px;font-weight:700;color:#f1f5f9;word-break:break-all}
+.product-name{font-size:14px;font-weight:700;word-break:break-all}
 .product-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
 .product-tag{background:#1a2235;border:1px solid #2d3748;border-radius:6px;padding:2px 8px;font-size:11px;color:#94a3b8}
 .product-tag.green{border-color:#00c896;color:#00c896}
 .product-shield{display:flex;align-items:center;gap:6px;font-size:12px;color:#00c896;margin-top:8px}
-
-/* BARRA DE PROGRESO SUBIDA */
 .upload-progress{background:#0a0f1e;border-radius:8px;padding:10px;margin-top:10px;display:none}
 .upload-progress-bar{height:4px;background:#1a2235;border-radius:4px;overflow:hidden;margin-top:6px}
 .upload-progress-fill{height:100%;background:#00c896;border-radius:4px;width:0%;transition:width 0.3s}
 .upload-progress-text{font-size:12px;color:#94a3b8}
+input[type=number]{background:#0a0f1e;border:1px solid #2d3748;border-radius:10px;padding:12px 14px;font-size:18px;color:#f1f5f9;width:100%;outline:none}
+input[type=number]:focus{border-color:#00c896}
+.role-card{background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem;cursor:pointer;text-align:center;transition:all 0.2s}
+.role-card.active{border-color:#00c896;background:rgba(0,200,150,0.08)}
+.role-card.disabled{opacity:0.4;pointer-events:none}
+.price-confirm-box{background:#0a0f1e;border:1px solid #00c896;border-radius:14px;padding:1.5rem;text-align:center;margin-bottom:12px}
+.price-confirm-amount{font-size:36px;font-weight:700;color:#00c896}
+.price-confirm-fee{font-size:14px;color:#94a3b8;margin-top:4px}
+.price-confirm-total{font-size:18px;font-weight:700;color:#f1f5f9;margin-top:8px}
 </style>
 </head>
 <body>
@@ -109,103 +97,124 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
   <div class="logo">🛡️</div>
   <div>
     <div class="logo-text">Vandox Safe</div>
-    <div class="logo-sub" id="lang-sub">Secure Escrow</div>
+    <div class="logo-sub">Secure Escrow · TON</div>
   </div>
 </div>
 
 <!-- LOADING -->
 <div class="screen active" id="s-loading">
-  <div id="debug-info" style="padding:10px;font-size:11px;color:#00c896;word-break:break-all"></div>
   <div class="loading">
     <div class="loading-icon">⚙️</div>
-    <div id="loading-text">Loading deal...</div>
-    <div id="debug-url" style="font-size:10px;color:#00c896;padding:10px;word-break:break-all"></div>
+    <div id="loading-text">Cargando trato...</div>
   </div>
 </div>
 
 <!-- ERROR -->
 <div class="screen" id="s-error">
-  <div class="error-screen">
-    <div class="error-icon">❌</div>
-    <div class="error-title" id="error-title">Deal not found</div>
-    <div class="error-sub" id="error-sub">This deal may have expired or doesn't exist.</div>
+  <div style="text-align:center;padding:3rem 1rem">
+    <div style="font-size:48px;margin-bottom:1rem">❌</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px" id="error-title">Trato no encontrado</div>
+    <div style="font-size:14px;color:#94a3b8" id="error-sub">Este trato puede haber expirado.</div>
   </div>
 </div>
 
-<!-- SETUP -->
+<!-- SETUP TIPO -->
 <div class="screen" id="s-setup">
-  <div class="card">
-    <div class="deal-amount" style="font-size:22px" id="setup-title">¿Qué tipo de trato?</div>
+  <div class="card" style="text-align:center">
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">¿Qué tipo de trato?</div>
+    <div style="font-size:13px;color:#94a3b8">Selecciona el modo</div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 1rem">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <div onclick="selectType('sale')" style="background:#1a2235;border:1px solid #2d3748;border-radius:14px;padding:1.25rem;cursor:pointer;text-align:center">
       <div style="font-size:28px;margin-bottom:8px">💵</div>
-      <div style="font-size:14px;font-weight:700;color:#f1f5f9">Venta</div>
+      <div style="font-size:14px;font-weight:700">Venta</div>
       <div style="font-size:11px;color:#94a3b8;margin-top:4px">Dinero por producto</div>
       <div style="font-size:11px;margin-top:8px;font-weight:700;color:#00c896">$1 o 1.5%</div>
     </div>
     <div onclick="selectType('swap')" style="background:#1a2235;border:1px solid #2d3748;border-radius:14px;padding:1.25rem;cursor:pointer;text-align:center">
       <div style="font-size:28px;margin-bottom:8px">🔄</div>
-      <div style="font-size:14px;font-weight:700;color:#f1f5f9">Trueque</div>
+      <div style="font-size:14px;font-weight:700">Trueque</div>
       <div style="font-size:11px;color:#94a3b8;margin-top:4px">Producto por producto</div>
-      <div style="font-size:11px;margin-top:8px;font-weight:700;color:#a78bfa">Siempre $1</div>
+      <div style="font-size:11px;margin-top:8px;font-weight:700;color:#a78bfa">$1 fijo</div>
     </div>
   </div>
 </div>
 
-<!-- PRICE SETUP -->
+<!-- PRECIO (solo vendedor, con opcion de editar) -->
 <div class="screen" id="s-price">
-  <div id="debug-tg" style="padding:8px 1rem;font-size:11px;color:#00c896;word-break:break-all"></div>
-  <button onclick="goTo('s-setup')" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;padding:8px 1rem;text-align:left">← Volver</button>
-  <div class="card" style="margin:1rem">
-    <div class="card-title">Tu rol en este trato</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-      <div onclick="selectRole('seller')" id="btn-seller" style="background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem;cursor:pointer;text-align:center">
-        <div style="font-size:24px;margin-bottom:6px">📤</div>
-        <div style="font-size:13px;font-weight:600;color:#f1f5f9">Vendedor</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:3px">Entrego el producto</div>
-      </div>
-      <div onclick="selectRole('buyer')" id="btn-buyer" style="background:#0a0f1e;border:1px solid #2d3748;border-radius:12px;padding:1rem;cursor:pointer;text-align:center">
-        <div style="font-size:24px;margin-bottom:6px">📥</div>
-        <div style="font-size:13px;font-weight:600;color:#f1f5f9">Comprador</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:3px">Pago por el producto</div>
-      </div>
-    </div>
-  </div>
-  <div class="card" id="price-form" style="display:none;margin:0 1rem">
+  <div class="card">
     <div class="card-title">Declara el precio acordado (USD)</div>
-    <input type="number" id="price-input" placeholder="ej: 150" style="background:#0a0f1e;border:1px solid #2d3748;border-radius:10px;padding:12px 14px;font-size:18px;color:#f1f5f9;width:100%;outline:none;margin-top:8px">
+    <div id="price-role-info" style="font-size:13px;color:#94a3b8;margin-bottom:12px"></div>
+    <input type="number" id="price-input" placeholder="ej: 150" style="margin-top:4px">
     <div id="price-feedback" style="margin-top:10px;display:none"></div>
     <button onclick="declarePrice()" style="width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:none;background:#00c896;color:#0a0f1e;margin-top:12px" id="btn-declare">Confirmar precio</button>
+  </div>
+  <div class="alert alert-info">
+    <span>💡</span>
+    <span>Asegúrate de que ambas partes han acordado este precio antes de confirmarlo.</span>
+  </div>
+</div>
+
+<!-- COMPRADOR: VE EL PRECIO Y CONFIRMA -->
+<div class="screen" id="s-buyer-confirm">
+  <div class="card">
+    <div class="card-title">🛡️ Trato propuesto por el vendedor</div>
+    <div class="price-confirm-box">
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:8px">Precio del producto</div>
+      <div class="price-confirm-amount" id="buyer-amount">$0.00</div>
+      <div class="price-confirm-fee" id="buyer-fee">+ $1.00 tarifa Vandox</div>
+      <div class="price-confirm-total" id="buyer-total">Total: $1.00 USDT</div>
+    </div>
+    <div id="buyer-ficha-wrap" style="display:none">
+      <div class="product-card">
+        <div class="product-card-header">
+          <div class="product-icon" id="buyer-prod-icon">📦</div>
+          <div>
+            <div class="product-name" id="buyer-prod-nombre">-</div>
+            <div class="product-meta">
+              <span class="product-tag green" id="buyer-prod-ext">-</span>
+              <span class="product-tag" id="buyer-prod-size">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="product-shield">🛡️ Archivo en custodia — se libera tras tu pago</div>
+      </div>
+    </div>
+    <button class="btn-pay" onclick="aceptarTrato()" id="btn-aceptar">✅ Aceptar y pagar</button>
+    <div style="font-size:12px;color:#475569;text-align:center;margin-top:8px">Al aceptar confirmas el precio acordado</div>
   </div>
 </div>
 
 <!-- MAIN DEAL -->
 <div class="screen" id="s-deal">
-  <button onclick="goTo('s-price')" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;padding:8px 1rem;text-align:left">← Volver</button>
+
   <div class="card">
     <div class="deal-amount" id="deal-amount">$0.00</div>
-    <div class="deal-desc" id="deal-desc">Loading...</div>
+    <div class="deal-desc" id="deal-desc">Producto digital</div>
     <div style="text-align:center;margin-top:12px">
-      <span class="badge b-amber" id="deal-badge"><span class="dot"></span> Awaiting payment</span>
+      <span class="badge b-amber" id="deal-badge"><span class="dot"></span> Esperando pago</span>
+    </div>
+    <!-- Botón editar precio (solo vendedor, solo si no pagado) -->
+    <div id="edit-price-wrap" style="display:none;text-align:center">
+      <button class="btn-edit" onclick="mostrarEditarPrecio()">✏️ Editar precio</button>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title" id="lbl-vault">Vault status</div>
+    <div class="card-title">Bóveda</div>
     <div class="vault">
-      <div style="font-size:12px;color:#94a3b8;text-align:center" id="vault-subtitle">Both slots must be filled to release</div>
+      <div style="font-size:12px;color:#94a3b8;text-align:center">Ambos compartimentos deben llenarse para liberar</div>
       <div class="vault-slots">
         <div class="vslot pending" id="slot-money">
           <div class="slot-icon">💵</div>
-          <div class="slot-label" id="lbl-payment">Payment</div>
-          <div class="slot-status wait" id="slot-money-status">Pending</div>
+          <div class="slot-label">Pago</div>
+          <div class="slot-status wait" id="slot-money-status">Pendiente</div>
         </div>
         <div class="vdiv">⇄</div>
         <div class="vslot" id="slot-product">
           <div class="slot-icon">📦</div>
-          <div class="slot-label" id="lbl-product">Product</div>
-          <div class="slot-status wait" id="slot-product-status">Pending</div>
+          <div class="slot-label">Producto</div>
+          <div class="slot-status wait" id="slot-product-status">Pendiente</div>
         </div>
       </div>
     </div>
@@ -213,27 +222,25 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
       <div class="progress-fill" id="progress-fill" style="width:25%"></div>
     </div>
     <div class="steps">
-      <div class="step"><div class="step-dot done"></div><div class="step-label" id="s1">Created</div></div>
-      <div class="step"><div class="step-dot active" id="sd2"></div><div class="step-label" id="s2">Payment</div></div>
-      <div class="step"><div class="step-dot" id="sd3"></div><div class="step-label" id="s3">Delivery</div></div>
-      <div class="step"><div class="step-dot" id="sd4"></div><div class="step-label" id="s4">Released</div></div>
+      <div class="step"><div class="step-dot done"></div><div class="step-label">Creado</div></div>
+      <div class="step"><div class="step-dot active" id="sd2"></div><div class="step-label">Pago</div></div>
+      <div class="step"><div class="step-dot" id="sd3"></div><div class="step-label">Entrega</div></div>
+      <div class="step"><div class="step-dot" id="sd4"></div><div class="step-label">Liberado</div></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title" id="lbl-details">Deal details</div>
-    <div class="info-row"><span class="info-label" id="lbl-amount">Amount</span><span class="info-value green" id="val-amount">-</span></div>
-    <div class="info-row"><span class="info-label" id="lbl-fee">Vandox fee</span><span class="info-value" id="val-fee">-</span></div>
-    <div class="info-row"><span class="info-label" id="lbl-total">Total to send</span><span class="info-value green" id="val-total">-</span></div>
-    <div class="info-row"><span class="info-label" id="lbl-code">Verification code</span><span class="info-value" id="val-code" style="font-family:monospace;font-size:16px;font-weight:700;color:#00c896">-</span></div>
-    <div class="info-row"><span class="info-label">TX ID</span><span class="info-value" id="val-txid" style="font-family:monospace;font-size:12px">-</span></div>
+    <div class="card-title">Detalles</div>
+    <div class="info-row"><span class="info-label">Importe</span><span class="info-value green" id="val-amount">-</span></div>
+    <div class="info-row"><span class="info-label">Tarifa Vandox</span><span class="info-value" id="val-fee">-</span></div>
+    <div class="info-row"><span class="info-label">Total a enviar</span><span class="info-value green" id="val-total">-</span></div>
+    <div class="info-row"><span class="info-label">Código</span><span class="info-value" id="val-code" style="font-family:monospace;font-size:16px;color:#00c896">-</span></div>
+    <div class="info-row"><span class="info-label">TX ID</span><span class="info-value" id="val-txid" style="font-size:11px;font-family:monospace">-</span></div>
     <div class="info-row"><span class="info-label">Vendedor</span><span class="info-value" id="val-vendor" style="color:#00c896">-</span></div>
     <div class="info-row"><span class="info-label">Comprador</span><span class="info-value" id="val-buyer-name" style="color:#3b82f6">-</span></div>
-    <div class="info-row"><span class="info-label">Mi ID</span><span class="info-value" id="val-myid" style="font-size:11px;color:#475569">-</span></div>
-    <div class="info-row"><span class="info-label" id="lbl-mode">Mode</span><span id="val-mode">-</span></div>
   </div>
 
-  <!-- FICHA DEL PRODUCTO (visible al comprador si archivo ya subido) -->
+  <!-- Ficha del producto (comprador, si archivo ya subido) -->
   <div class="card" id="product-ficha-card" style="display:none">
     <div class="card-title">📦 Producto en bóveda</div>
     <div class="product-card">
@@ -247,54 +254,39 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
           </div>
         </div>
       </div>
-      <div class="product-shield">🛡️ Archivo verificado y en custodia segura</div>
+      <div class="product-shield">🛡️ Archivo verificado y en custodia</div>
     </div>
-    <button class="btn-download" id="btn-download" disabled onclick="descargarArchivo()">
-      🔒 Bloqueado hasta el pago
-    </button>
+    <button class="btn-download" id="btn-download" disabled onclick="descargarArchivo()">🔒 Bloqueado hasta el pago</button>
   </div>
 
-  <div class="card" id="payment-card">
-    <div class="card-title" id="lbl-pay-title">Send payment</div>
+  <!-- PAGO (comprador) -->
+  <div class="card" id="payment-card" style="display:none">
+    <div class="card-title">Pagar con wallet TON</div>
+    <div id="ton-connect-btn"></div>
+    <button class="btn-pay" onclick="pagarConWallet()" id="btn-paid" style="margin-top:12px;display:none">💳 Pagar ahora</button>
+  </div>
+
+  <!-- SUBIDA (vendedor) -->
+  <div class="card" id="upload-card" style="display:none">
+    <div class="card-title">Sube tu producto</div>
     <div class="alert alert-warn" style="margin-bottom:12px">
       <span>⚠️</span>
-      <span id="alert-network"><strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.</span>
-    </div>
-    <div class="wallet-box">
-      <div class="wallet-label" id="lbl-wallet">Vandox Vault Address</div>
-      <div class="wallet-addr" id="vault-address">Loading...</div>
-      <button class="copy-btn" onclick="copyAddress()" id="copy-btn">📋 Copy address</button>
-    </div>
-    <div class="alert alert-info" style="margin-top:12px">
-      <span>💡</span>
-      <span id="alert-memo"><strong>Important:</strong> Include the verification code as memo/comment when sending.</span>
-    </div>
-    <div id="ton-connect-btn" style="margin-top:12px"></div>
-    <button class="btn-pay" onclick="confirmPaid()" id="btn-paid" style="margin-top:12px;display:none">✅ Ya he enviado el pago</button>
-  </div>
-
-  <div class="card" id="upload-card" style="display:none">
-    <div class="card-title" id="lbl-upload-title">Upload your product</div>
-    <div class="alert alert-success" style="margin-bottom:12px">
-      <span>✅</span>
-      <span id="alert-paid-confirm"><strong>Payment confirmed.</strong> Now upload your digital product.</span>
+      <span><strong>Máximo 50MB.</strong> Si tu archivo es más grande, sube un .txt con el enlace externo y contraseña.</span>
     </div>
     <input type="file" id="file-input" style="display:none" onchange="handleFileUpload(event)">
     <div style="background:#0a0f1e;border:2px dashed #2d3748;border-radius:12px;padding:2rem;text-align:center;cursor:pointer" onclick="document.getElementById('file-input').click()" id="upload-zone">
       <div style="font-size:28px;margin-bottom:8px">📁</div>
-      <div style="font-size:14px;color:#94a3b8" id="upload-text">Tap to upload file</div>
-      <div style="font-size:12px;color:#475569;margin-top:4px" id="upload-sub">Max 50MB · All formats</div>
+      <div style="font-size:14px;color:#94a3b8" id="upload-text">Toca para subir archivo</div>
+      <div style="font-size:12px;color:#475569;margin-top:4px">Máx 50MB · Todos los formatos</div>
     </div>
-    <!-- Barra de progreso subida -->
     <div class="upload-progress" id="upload-progress">
       <div class="upload-progress-text" id="upload-progress-text">Subiendo archivo...</div>
-      <div class="upload-progress-bar">
-        <div class="upload-progress-fill" id="upload-progress-fill"></div>
-      </div>
+      <div class="upload-progress-bar"><div class="upload-progress-fill" id="upload-progress-fill"></div></div>
     </div>
   </div>
 
-  <div id="seller-waiting-msg" style="display:none" class="card">
+  <!-- VENDEDOR: esperando pago del comprador -->
+  <div class="card" id="seller-waiting-msg" style="display:none">
     <div class="alert alert-success">
       <span>✅</span>
       <span><strong>Producto en bóveda.</strong> Esperando el pago del comprador.</span>
@@ -302,617 +294,520 @@ body{background:#0a0f1e;color:#f1f5f9;min-height:100vh;display:flex;flex-directi
     <div id="seller-ton-btn" style="margin-top:8px"></div>
   </div>
 
-  <div class="card" id="confirm-card" style="display:none">
-    <div class="card-title" id="lbl-confirm-title">Review & release</div>
-    <div class="alert alert-success" style="margin-bottom:12px">
-      <span>📦</span>
-      <span id="alert-product-ready"><strong>Product uploaded.</strong> Review carefully before releasing funds.</span>
+  <!-- EDITAR PRECIO (modal inline) -->
+  <div class="card" id="edit-price-card" style="display:none">
+    <div class="card-title">✏️ Editar precio</div>
+    <input type="number" id="edit-price-input" placeholder="Nuevo precio en USD">
+    <div id="edit-price-feedback" style="margin-top:8px;font-size:13px;color:#94a3b8"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button onclick="cancelarEditarPrecio()" style="padding:12px;border-radius:10px;border:1px solid #2d3748;background:#1a2235;color:#f1f5f9;font-size:14px;cursor:pointer">Cancelar</button>
+      <button onclick="guardarPrecio()" style="padding:12px;border-radius:10px;border:none;background:#00c896;color:#0a0f1e;font-size:14px;font-weight:700;cursor:pointer">Guardar</button>
     </div>
-    <button class="btn-pay" onclick="releaseFunds()" id="btn-release">✅ Confirm & release funds</button>
-    <button class="btn-danger" onclick="openDispute()" id="btn-dispute">⚠️ Open dispute</button>
   </div>
+
 </div>
 
 <!-- SUCCESS -->
 <div class="screen" id="s-success">
   <div class="success-screen">
     <div class="success-icon">🛡️</div>
-    <div class="success-title" id="success-title">Deal complete!</div>
-    <div class="success-sub" id="success-sub">Funds released instantly. Recorded on blockchain. Permanent.</div>
-    <div style="margin-top:1.5rem"><span class="badge b-green"><span class="dot"></span> Verified on TON</span></div>
-    <!-- Botón descarga en success (solo comprador) -->
+    <div class="success-title">¡Trato completado!</div>
+    <div class="success-sub">Fondos liberados. Registrado en blockchain.</div>
+    <div style="margin-top:1.5rem"><span class="badge b-green"><span class="dot"></span> Verificado en TON</span></div>
     <div id="success-download-wrap" style="display:none;margin-top:1.5rem">
-      <button class="btn-download" onclick="descargarArchivo()" style="max-width:300px;margin:0 auto">
-        ⬇️ Descargar producto
-      </button>
+      <button class="btn-download" onclick="descargarArchivo()" style="max-width:300px;margin:0 auto">⬇️ Descargar producto</button>
     </div>
   </div>
 </div>
 
 <script>
+const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
+const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
+const SERVER = 'https://vandox-bot-production.up.railway.app';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+const tg = window.Telegram?.WebApp;
+if (tg) tg.ready();
+
+var currentTx = null;
+var txId = null;
+var userRole = null; // 'seller' | 'buyer'
+var myTgId = null;
+
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: 'https://vandox-bot-production.up.railway.app/tonconnect-manifest.json',
+    manifestUrl: SERVER + '/tonconnect-manifest.json',
     buttonRootId: 'ton-connect-btn'
 });
 
 tonConnectUI.onStatusChange(async wallet => {
     const btn = document.getElementById('btn-paid');
-    if (btn) {
-        btn.style.display = 'block';
-        btn.textContent = wallet ? '💳 Pagar ahora' : '🔗 Conectar wallet y pagar';
-    }
-    if (wallet && txId) {
-        const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
-        const { data: txData } = await db.from('transacciones').select('vendedor_telegram_id').eq('id', txId).single();
-        const isSeller = txData && myTgId && myTgId === txData.vendedor_telegram_id;
-        if (isSeller) {
-            await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
-            console.log('vendedor_wallet guardado:', wallet.account.address);
-        }
+    if (btn) btn.style.display = wallet ? 'block' : 'none';
+    if (wallet && txId && userRole === 'seller') {
+        await db.from('transacciones').update({ vendedor_wallet: wallet.account.address }).eq('id', txId);
     }
 });
 
-const SUPABASE_URL = 'https://tmyzyydwtzwhgeplyxyw.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteXp5eWR3dHp3aGdlcGx5eHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzM4NzksImV4cCI6MjA5MjAwOTg3OX0.KoefRILCMw6CpEzIBWDV0vlCBulIEhhP1EMWKEn8efA';
-const BOT_WALLET = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
-
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const tg = window.Telegram?.WebApp;
-if (tg) tg.ready();
-var L = (navigator.language || 'en').startsWith('es') ? 'es' : 'en';
-var currentTx = null;
-var txId = null;
-var userRole = null;
-var dealType = null;
-
-const T = {
-  en: {
-    'lang-sub': 'Secure Escrow',
-    'loading-text': 'Loading deal...',
-    'error-title': 'Deal not found',
-    'error-sub': 'This deal may have expired.',
-    'lbl-vault': 'Vault status',
-    'vault-subtitle': 'Both slots must be filled to release',
-    'lbl-payment': 'Payment',
-    'lbl-product': 'Product',
-    's1': 'Created', 's2': 'Payment', 's3': 'Delivery', 's4': 'Released',
-    'lbl-details': 'Deal details',
-    'lbl-amount': 'Amount', 'lbl-fee': 'Vandox fee', 'lbl-total': 'Total to send', 'lbl-code': 'Code', 'lbl-mode': 'Mode',
-    'lbl-pay-title': 'Send payment',
-    'alert-network': '<strong>TON network only.</strong> Send USDT via TON. Wrong network = lost funds.',
-    'lbl-wallet': 'Vandox Vault Address',
-    'copy-btn': '📋 Copy address',
-    'alert-memo': '<strong>Important:</strong> Include verification code as memo/comment.',
-    'btn-paid': '✅ I have sent the payment',
-    'lbl-upload-title': 'Upload your product',
-    'alert-paid-confirm': '<strong>Upload your product.</strong> The buyer will receive it once payment is confirmed.',
-    'upload-text': 'Tap to upload file',
-    'upload-sub': 'Max 50MB · All formats',
-    'lbl-confirm-title': 'Review & release',
-    'alert-product-ready': '<strong>Product uploaded.</strong> Review carefully before releasing.',
-    'btn-release': '✅ Confirm & release funds',
-    'btn-dispute': '⚠️ Open dispute',
-    'success-title': 'Deal complete!',
-    'success-sub': 'Funds released. Recorded on blockchain. Permanent.',
-    'slot-pending': 'Pending', 'slot-confirmed': 'Confirmed ✓', 'slot-uploaded': 'Uploaded ✓',
-    'deal-badge-pending': 'Awaiting payment',
-    'deal-badge-verifying': 'Verifying payment',
-    'deal-badge-delivery': 'Awaiting delivery',
-    'deal-badge-reviewing': 'Reviewing',
-    'deal-badge-released': 'Released ✓',
-    'mode-express': '⚡ Express',
-    'mode-protected': '🛡️ Protected',
-  },
-  es: {
-    'lang-sub': 'Custodia Segura',
-    'loading-text': 'Cargando trato...',
-    'error-title': 'Trato no encontrado',
-    'error-sub': 'Este trato puede haber expirado.',
-    'lbl-vault': 'Estado de la bóveda',
-    'vault-subtitle': 'Ambos compartimentos deben llenarse para liberar',
-    'lbl-payment': 'Pago',
-    'lbl-product': 'Producto',
-    's1': 'Creado', 's2': 'Pago', 's3': 'Entrega', 's4': 'Liberado',
-    'lbl-details': 'Detalles del trato',
-    'lbl-amount': 'Importe', 'lbl-fee': 'Tarifa Vandox', 'lbl-total': 'Total a enviar', 'lbl-code': 'Código', 'lbl-mode': 'Modo',
-    'lbl-pay-title': 'Enviar pago',
-    'alert-network': '<strong>Solo red TON.</strong> Envía USDT por TON. Red incorrecta = fondos perdidos.',
-    'lbl-wallet': 'Dirección de la bóveda Vandox',
-    'copy-btn': '📋 Copiar dirección',
-    'alert-memo': '<strong>Importante:</strong> Incluye el código como memo/comentario al enviar.',
-    'btn-paid': '✅ Ya he enviado el pago',
-    'lbl-upload-title': 'Sube tu producto',
-    'alert-paid-confirm': '<strong>Sube tu producto.</strong> El comprador recibirá el archivo cuando confirme el pago.',
-    'upload-text': 'Toca para subir archivo',
-    'upload-sub': 'Máx 50MB · Todos los formatos',
-    'lbl-confirm-title': 'Revisar y liberar',
-    'alert-product-ready': '<strong>Producto subido.</strong> Revísalo antes de liberar los fondos.',
-    'btn-release': '✅ Confirmar y liberar fondos',
-    'btn-dispute': '⚠️ Abrir disputa',
-    'success-title': '¡Trato completado!',
-    'success-sub': 'Fondos liberados. Registrado en blockchain. Permanente.',
-    'slot-pending': 'Pendiente', 'slot-confirmed': 'Confirmado ✓', 'slot-uploaded': 'Subido ✓',
-    'deal-badge-pending': 'Esperando pago',
-    'deal-badge-verifying': 'Verificando pago',
-    'deal-badge-delivery': 'Esperando entrega',
-    'deal-badge-reviewing': 'Revisando',
-    'deal-badge-released': 'Liberado ✓',
-    'mode-express': '⚡ Express',
-    'mode-protected': '🛡️ Protegido',
-  }
-};
-
-function t(key) { return T[L][key] || T['en'][key] || key; }
-function applyLang() { Object.keys(T[L]).forEach(k => { var el = document.getElementById(k); if (el) el.innerHTML = t(k); }); }
-
 function goTo(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
 }
 
 function getExtIcon(ext) {
-  const e = (ext || '').toLowerCase();
-  if (['pdf'].includes(e)) return '📄';
-  if (['zip','rar','7z','tar','gz'].includes(e)) return '🗜️';
-  if (['mp4','mov','avi','mkv'].includes(e)) return '🎬';
-  if (['mp3','wav','flac','aac'].includes(e)) return '🎵';
-  if (['jpg','jpeg','png','gif','webp','svg'].includes(e)) return '🖼️';
-  if (['doc','docx'].includes(e)) return '📝';
-  if (['xls','xlsx'].includes(e)) return '📊';
-  if (['ppt','pptx'].includes(e)) return '📽️';
-  if (['py','js','ts','html','css','json'].includes(e)) return '💻';
-  return '📦';
-}
-
-function mostrarFichaProducto(tx) {
-  if (!tx.archivo_nombre) return;
-  const fichaCard = document.getElementById('product-ficha-card');
-  if (!fichaCard) return;
-  fichaCard.style.display = 'block';
-  document.getElementById('ficha-nombre').textContent = tx.archivo_nombre;
-  const ext = tx.archivo_extension || tx.archivo_nombre.split('.').pop().toUpperCase();
-  const size = tx.archivo_tamano ? tx.archivo_tamano + ' MB' : '-';
-  document.getElementById('ficha-ext').textContent = ext;
-  document.getElementById('ficha-size').textContent = size;
-  document.getElementById('ficha-icon').textContent = getExtIcon(ext);
-
-  // Botón descarga: solo activo si liberado y es comprador
-  const btnDownload = document.getElementById('btn-download');
-  if (tx.estado === 'liberado' && userRole === 'buyer') {
-    btnDownload.disabled = false;
-    btnDownload.textContent = '⬇️ Descargar producto';
-  } else if (userRole === 'buyer') {
-    btnDownload.disabled = true;
-    btnDownload.textContent = '🔒 Bloqueado hasta el pago';
-  } else {
-    btnDownload.style.display = 'none';
-  }
+    const e = (ext || '').toLowerCase();
+    if (['pdf'].includes(e)) return '📄';
+    if (['zip','rar','7z'].includes(e)) return '🗜️';
+    if (['mp4','mov','avi'].includes(e)) return '🎬';
+    if (['mp3','wav'].includes(e)) return '🎵';
+    if (['jpg','jpeg','png','gif','webp'].includes(e)) return '🖼️';
+    if (['doc','docx'].includes(e)) return '📝';
+    if (['xls','xlsx'].includes(e)) return '📊';
+    if (['py','js','ts','html'].includes(e)) return '💻';
+    return '📦';
 }
 
 function getTxIdFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('txid')) return params.get('txid');
-  if (params.get('startapp')) return params.get('startapp');
-  if (params.get('tgWebAppStartParam')) return params.get('tgWebAppStartParam');
-  if (tg?.initData) {
-    const initDataParams = new URLSearchParams(tg.initData);
-    const startParam = initDataParams.get('start_param');
-    if (startParam) return startParam;
-  }
-  const tgData = tg?.initDataUnsafe?.start_param;
-  if (tgData) return tgData;
-  return null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('txid')) return params.get('txid');
+    if (params.get('startapp')) return params.get('startapp');
+    if (tg?.initDataUnsafe?.start_param) return tg.initDataUnsafe.start_param;
+    if (tg?.initData) {
+        const p = new URLSearchParams(tg.initData);
+        if (p.get('start_param')) return p.get('start_param');
+    }
+    return null;
 }
 
-async function getNombreDeUsuario() {
-  try {
-    const initData = window.Telegram?.WebApp?.initData;
-    if (!initData) return 'Usuario';
-    const resp = await fetch('https://vandox-bot-production.up.railway.app/user?initData=' + encodeURIComponent(initData));
-    const data = await resp.json();
-    if (data.user) return data.user.first_name || data.user.username || 'Usuario';
-    return 'Usuario';
-  } catch(e) { return 'Usuario'; }
+// ── DETERMINAR ROL (con bloqueo de roles) ────────────────────────────────────
+// Si vendedor_telegram_id ya está ocupado y no soy yo → soy comprador obligatoriamente
+// Si no hay vendedor asignado → soy vendedor
+function determinarRol(tx) {
+    const vendedorId = tx.vendedor_telegram_id || tx.vendedor_id;
+    if (vendedorId && String(vendedorId) === String(myTgId)) return 'seller';
+    if (vendedorId) return 'buyer'; // ya hay vendedor y no soy yo
+    return 'seller'; // no hay vendedor, lo asumo
 }
 
 async function loadDeal() {
-  txId = getTxIdFromUrl();
-  if (!txId) { goTo('s-setup'); return; }
+    txId = getTxIdFromUrl();
+    myTgId = tg?.initDataUnsafe?.user?.id?.toString();
 
-  const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
-  if (error || !data) { goTo('s-error'); return; }
+    if (!txId) { goTo('s-error'); return; }
 
-  currentTx = data;
-  const myTgId = tg?.initDataUnsafe?.user?.id?.toString();
-  userRole = (myTgId && myTgId === data.vendedor_telegram_id) ? 'seller' : 'buyer';
+    const { data, error } = await db.from('transacciones').select('*').eq('id', txId).single();
+    if (error || !data) { goTo('s-error'); return; }
 
-  if (userRole === 'seller') {
-    document.getElementById('seller-ton-btn').appendChild(document.getElementById('ton-connect-btn'));
-  }
+    currentTx = data;
+    userRole = determinarRol(data);
 
-  if (userRole === 'buyer' && !data.comprador_nombre) {
-    const nombre = await getNombreDeUsuario();
-    await db.from('transacciones').update({ comprador_nombre: nombre }).eq('id', txId);
-  }
+    // Si soy vendedor y no estoy registrado aún, registrarme
+    if (userRole === 'seller' && !data.vendedor_telegram_id && myTgId) {
+        await db.from('transacciones').update({
+            vendedor_telegram_id: myTgId,
+            vendedor_id: myTgId,
+            vendedor_nombre: tg?.initDataUnsafe?.user?.first_name || 'Vendedor'
+        }).eq('id', txId);
+    }
 
-  L = data.lang || L;
+    // Mover TonConnect al lugar correcto según rol
+    if (userRole === 'seller') {
+        const sellerBtn = document.getElementById('seller-ton-btn');
+        if (sellerBtn) sellerBtn.appendChild(document.getElementById('ton-connect-btn'));
+    }
 
-  if (data.estado === 'nuevo' || data.estado === 'pendiente' || data.estado === 'configurando') {
-    dealType = data.tipo;
-    goTo('s-setup');
-    applyLang();
-    return;
-  }
-  if (data.estado === 'esperando_comprador_precio' || data.estado === 'esperando_vendedor_precio') {
-    dealType = data.tipo;
-    if (userRole === 'seller') selectRole('seller');
-    else selectRole('buyer');
-    goTo('s-price');
-    return;
-  }
+    // Si soy comprador, guardar nombre
+    if (userRole === 'buyer' && myTgId && !data.comprador_nombre) {
+        await db.from('transacciones').update({
+            comprador_nombre: tg?.initDataUnsafe?.user?.first_name || 'Comprador',
+            comprador_id: myTgId
+        }).eq('id', txId);
+    }
 
-  renderDeal(data);
-  goTo('s-deal');
+    // ROUTING según estado
+    const estado = data.estado;
+
+    if (['nuevo', 'configurando', 'pendiente'].includes(estado) && userRole === 'seller') {
+        goTo('s-setup');
+        return;
+    }
+
+    if (estado === 'esperando_comprador_precio' && userRole === 'buyer') {
+        // Comprador ve el precio propuesto y solo confirma
+        mostrarConfirmacionComprador(data);
+        return;
+    }
+
+    if (['esperando_comprador_precio', 'configurando'].includes(estado) && userRole === 'seller') {
+        // Vendedor espera al comprador
+        goTo('s-price');
+        document.getElementById('price-role-info').textContent = 'Precio declarado. Esperando al comprador...';
+        document.getElementById('price-input').value = data.vendedor_precio || '';
+        document.getElementById('btn-declare').style.display = 'none';
+        return;
+    }
+
+    if (['nuevo', 'configurando', 'pendiente'].includes(estado) && userRole === 'buyer') {
+        // Esperar a que vendedor configure
+        document.getElementById('loading-text').textContent = 'Esperando al vendedor...';
+        goTo('s-loading');
+        return;
+    }
+
+    renderDeal(data);
+    goTo('s-deal');
+}
+
+function mostrarConfirmacionComprador(tx) {
+    const amount = parseFloat(tx.vendedor_precio || 0);
+    const fee = calcFee(amount);
+    const total = parseFloat((amount + fee).toFixed(2));
+    document.getElementById('buyer-amount').textContent = '$' + amount.toFixed(2);
+    document.getElementById('buyer-fee').textContent = '+ $' + fee.toFixed(2) + ' tarifa Vandox';
+    document.getElementById('buyer-total').textContent = 'Total: $' + total.toFixed(2) + ' USDT';
+    // Mostrar ficha si hay archivo subido
+    if (tx.archivo_nombre) {
+        const ext = tx.archivo_extension || tx.archivo_nombre.split('.').pop().toUpperCase();
+        document.getElementById('buyer-prod-icon').textContent = getExtIcon(ext);
+        document.getElementById('buyer-prod-nombre').textContent = tx.archivo_nombre;
+        document.getElementById('buyer-prod-ext').textContent = ext;
+        document.getElementById('buyer-prod-size').textContent = (tx.archivo_tamano || '-') + ' MB';
+        document.getElementById('buyer-ficha-wrap').style.display = 'block';
+    }
+    goTo('s-buyer-confirm');
+}
+
+function calcFee(amount) {
+    return amount <= 50 ? 1.00 : parseFloat((amount * 0.015).toFixed(2));
+}
+
+async function aceptarTrato() {
+    const amount = parseFloat(currentTx.vendedor_precio || 0);
+    const fee = calcFee(amount);
+    const total = parseFloat((amount + fee).toFixed(2));
+    const compradorId = myTgId;
+    const compradorNombre = tg?.initDataUnsafe?.user?.first_name || 'Comprador';
+    await db.from('transacciones').update({
+        comprador_precio: amount,
+        comprador_id: compradorId,
+        comprador_nombre: compradorNombre,
+        fee,
+        total_depositar: total,
+        estado: 'esperando_pago'
+    }).eq('id', txId);
+    currentTx = { ...currentTx, comprador_precio: amount, fee, total_depositar: total, estado: 'esperando_pago' };
+    renderDeal(currentTx);
+    goTo('s-deal');
 }
 
 function renderDeal(tx) {
-  const amount = tx.comprador_precio || 0;
-  const fee = tx.fee || 0;
-  const total = tx.total_depositar || tx.total || (amount + fee);
-
-  document.getElementById('deal-amount').textContent = '$' + parseFloat(total).toFixed(2) + ' USDT';
-  document.getElementById('deal-desc').textContent = tx.descripcion || (L === 'es' ? 'Producto digital' : 'Digital product');
-  document.getElementById('val-amount').textContent = '$' + parseFloat(amount).toFixed(2);
-  document.getElementById('val-fee').textContent = '$' + parseFloat(fee).toFixed(2);
-  document.getElementById('val-total').textContent = '$' + parseFloat(total).toFixed(2);
-  document.getElementById('val-code').textContent = tx.code || '-';
-  document.getElementById('vault-address').textContent = BOT_WALLET;
-  document.getElementById('val-mode').innerHTML = '<span class="badge b-blue">' + t('mode-express') + '</span>';
-
-  const codeEl = document.getElementById('val-code');
-  if (codeEl) { codeEl.textContent = tx.code || '-'; codeEl.style.fontSize = '20px'; codeEl.style.color = '#00c896'; codeEl.style.fontWeight = '700'; }
-
-  const vendorEl = document.getElementById('val-vendor');
-  if (vendorEl) vendorEl.textContent = tx.vendedor_nombre || 'Vendedor';
-  const buyerEl = document.getElementById('val-buyer-name');
-  if (buyerEl) buyerEl.textContent = tx.comprador_nombre || 'Esperando...';
-  const txIdEl = document.getElementById('val-txid');
-  if (txIdEl) txIdEl.textContent = tx.id || '-';
-
-  // Mostrar ficha del producto si ya está subido
-  if (tx.archivo_subido && tx.archivo_nombre) {
-    mostrarFichaProducto(tx);
-  }
-
-  updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
-}
-
-async function updateVaultState(estado, pagoConfirmado, archivoSubido) {
-  const slotMoney = document.getElementById('slot-money');
-  const slotProduct = document.getElementById('slot-product');
-  const moneyStatus = document.getElementById('slot-money-status');
-  const productStatus = document.getElementById('slot-product-status');
-  const progress = document.getElementById('progress-fill');
-  const badge = document.getElementById('deal-badge');
-  const payCard = document.getElementById('payment-card');
-  const uploadCard = document.getElementById('upload-card');
-  const confirmCard = document.getElementById('confirm-card');
-
-  payCard.style.display = 'none';
-  uploadCard.style.display = 'none';
-  confirmCard.style.display = 'none';
-  const sellerMsg = document.getElementById('seller-waiting-msg');
-  if (sellerMsg) sellerMsg.style.display = 'none';
-
-  const isSeller = userRole === 'seller';
-  const isBuyer = userRole === 'buyer';
-
-  if (pagoConfirmado) {
-    slotMoney.className = 'vslot filled';
-    moneyStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed');
-  }
-  if (archivoSubido) {
-    slotProduct.className = 'vslot filled';
-    productStatus.className = 'slot-status ok';
-    productStatus.textContent = t('slot-uploaded');
-    if (sellerMsg && isSeller) sellerMsg.style.display = 'block';
-  }
-
-  if (pagoConfirmado && archivoSubido && estado !== 'liberado') {
-    await fetch('https://vandox-bot-production.up.railway.app/liberar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ txId: txId })
-    });
-    goTo('s-success');
-    // Mostrar botón descarga en success si es comprador
-    if (isBuyer && currentTx && currentTx.archivo_nombre) {
-      document.getElementById('success-download-wrap').style.display = 'block';
+    const amount = tx.comprador_precio || tx.vendedor_precio || 0;
+    const fee = tx.fee || 0;
+    const total = tx.total_depositar || tx.total || (parseFloat(amount) + parseFloat(fee));
+    document.getElementById('deal-amount').textContent = '$' + parseFloat(total).toFixed(2) + ' USDT';
+    document.getElementById('deal-desc').textContent = tx.descripcion || 'Producto digital';
+    document.getElementById('val-amount').textContent = '$' + parseFloat(amount).toFixed(2);
+    document.getElementById('val-fee').textContent = '$' + parseFloat(fee).toFixed(2);
+    document.getElementById('val-total').textContent = '$' + parseFloat(total).toFixed(2);
+    document.getElementById('val-code').textContent = tx.code || '-';
+    document.getElementById('val-txid').textContent = tx.id || '-';
+    document.getElementById('val-vendor').textContent = tx.vendedor_nombre || 'Vendedor';
+    document.getElementById('val-buyer-name').textContent = tx.comprador_nombre || 'Esperando...';
+    // Botón editar precio: solo vendedor, solo si no pagado
+    const editWrap = document.getElementById('edit-price-wrap');
+    const estadosEditables = ['nuevo','configurando','esperando_comprador_precio','esperando_pago'];
+    if (userRole === 'seller' && estadosEditables.includes(tx.estado) && !tx.pago_confirmado) {
+        editWrap.style.display = 'block';
+    } else {
+        editWrap.style.display = 'none';
     }
-    return;
-  }
+    if (tx.archivo_subido && tx.archivo_nombre) mostrarFichaProducto(tx);
+    updateVaultState(tx.estado, tx.pago_confirmado, tx.archivo_subido);
+}
 
-  if (estado === 'esperando_pago' || estado === 'esperando_quien_paga') {
-    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-pending');
-    badge.className = 'badge b-amber';
-    progress.style.width = '25%';
-    slotMoney.className = 'vslot pending';
-    moneyStatus.className = 'slot-status wait';
-    moneyStatus.textContent = t('slot-pending');
-    productStatus.textContent = t('slot-pending');
-    if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
-    if (isSeller) uploadCard.style.display = 'block';
-    document.getElementById('sd2').className = 'step-dot active';
-  } else if (estado === 'verificando_pago') {
-    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-verifying');
-    badge.className = 'badge b-amber';
-    progress.style.width = '50%';
-    slotMoney.className = 'vslot filled';
-    moneyStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed');
-    if (isSeller) uploadCard.style.display = 'block';
-    document.getElementById('sd2').className = 'step-dot done';
-    document.getElementById('sd3').className = 'step-dot active';
-  } else if (estado === 'entregado') {
-    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-delivery');
-    badge.className = 'badge b-amber';
-    progress.style.width = '75%';
-    slotMoney.className = 'vslot pending';
-    moneyStatus.className = 'slot-status wait';
-    moneyStatus.textContent = t('slot-pending');
-    slotProduct.className = 'vslot filled';
-    productStatus.className = 'slot-status ok';
-    productStatus.textContent = t('slot-uploaded');
-    if (isBuyer && !pagoConfirmado) payCard.style.display = 'block';
-    document.getElementById('sd2').className = 'step-dot active';
-    document.getElementById('sd3').className = 'step-dot done';
-  } else if (estado === 'liberado') {
-    badge.innerHTML = '<span class="dot"></span> ' + t('deal-badge-released');
-    badge.className = 'badge b-green';
-    progress.style.width = '100%';
-    slotMoney.className = 'vslot filled';
-    slotProduct.className = 'vslot filled';
-    moneyStatus.className = 'slot-status ok';
-    productStatus.className = 'slot-status ok';
-    moneyStatus.textContent = t('slot-confirmed');
-    productStatus.textContent = t('slot-uploaded');
-    document.getElementById('sd2').className = 'step-dot done';
-    document.getElementById('sd3').className = 'step-dot done';
-    document.getElementById('sd4').className = 'step-dot done';
-    // Desbloquear botón descarga
-    if (isBuyer && currentTx && currentTx.archivo_nombre) {
-      mostrarFichaProducto({ ...currentTx, estado: 'liberado' });
+function mostrarFichaProducto(tx) {
+    const fichaCard = document.getElementById('product-ficha-card');
+    fichaCard.style.display = 'block';
+    document.getElementById('ficha-nombre').textContent = tx.archivo_nombre;
+    const ext = tx.archivo_extension || tx.archivo_nombre.split('.').pop().toUpperCase();
+    document.getElementById('ficha-ext').textContent = ext;
+    document.getElementById('ficha-size').textContent = (tx.archivo_tamano || '-') + ' MB';
+    document.getElementById('ficha-icon').textContent = getExtIcon(ext);
+    const btnDl = document.getElementById('btn-download');
+    if (tx.estado === 'liberado' && userRole === 'buyer') {
+        btnDl.disabled = false;
+        btnDl.textContent = '⬇️ Descargar producto';
+    } else if (userRole === 'buyer') {
+        btnDl.disabled = true;
+        btnDl.textContent = '🔒 Bloqueado hasta el pago';
+    } else {
+        btnDl.style.display = 'none';
     }
-    goTo('s-success');
-    if (isBuyer && currentTx && currentTx.archivo_nombre) {
-      document.getElementById('success-download-wrap').style.display = 'block';
+}
+
+function updateVaultState(estado, pagoConfirmado, archivoSubido) {
+    const slotMoney = document.getElementById('slot-money');
+    const slotProduct = document.getElementById('slot-product');
+    const moneyStatus = document.getElementById('slot-money-status');
+    const productStatus = document.getElementById('slot-product-status');
+    const payCard = document.getElementById('payment-card');
+    const uploadCard = document.getElementById('upload-card');
+    const sellerMsg = document.getElementById('seller-waiting-msg');
+
+    payCard.style.display = 'none';
+    uploadCard.style.display = 'none';
+    sellerMsg.style.display = 'none';
+
+    if (pagoConfirmado) {
+        slotMoney.className = 'vslot filled';
+        moneyStatus.className = 'slot-status ok';
+        moneyStatus.textContent = 'Confirmado ✓';
     }
-  }
+    if (archivoSubido) {
+        slotProduct.className = 'vslot filled';
+        productStatus.className = 'slot-status ok';
+        productStatus.textContent = 'Subido ✓';
+    }
+
+    // Si ambos slots llenos y no liberado aún → llamar liberar
+    if (pagoConfirmado && archivoSubido && estado !== 'liberado' && estado !== 'liberando') {
+        fetch(SERVER + '/liberar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txId })
+        });
+    }
+
+    if (estado === 'liberado' || estado === 'liberando') {
+        document.getElementById('deal-badge').innerHTML = '<span class="dot"></span> Liberado ✓';
+        document.getElementById('deal-badge').className = 'badge b-green';
+        document.getElementById('progress-fill').style.width = '100%';
+        ['sd2','sd3','sd4'].forEach(id => document.getElementById(id).className = 'step-dot done');
+        if (estado === 'liberado') {
+            goTo('s-success');
+            if (userRole === 'buyer' && currentTx?.archivo_nombre) {
+                document.getElementById('success-download-wrap').style.display = 'block';
+            }
+        }
+        return;
+    }
+
+    if (estado === 'esperando_pago' || estado === 'verificando_pago') {
+        document.getElementById('deal-badge').innerHTML = '<span class="dot"></span> Esperando pago';
+        document.getElementById('deal-badge').className = 'badge b-amber';
+        document.getElementById('progress-fill').style.width = '25%';
+        slotMoney.className = 'vslot pending';
+        moneyStatus.className = 'slot-status wait';
+        moneyStatus.textContent = 'Pendiente';
+        if (!archivoSubido) {
+            productStatus.textContent = 'Pendiente';
+        }
+        document.getElementById('sd2').className = 'step-dot active';
+        if (userRole === 'buyer' && !pagoConfirmado) payCard.style.display = 'block';
+        if (userRole === 'seller') {
+            if (!archivoSubido) uploadCard.style.display = 'block';
+            else sellerMsg.style.display = 'block';
+        }
+    } else if (estado === 'entregado') {
+        document.getElementById('deal-badge').innerHTML = '<span class="dot"></span> Esperando pago';
+        document.getElementById('deal-badge').className = 'badge b-amber';
+        document.getElementById('progress-fill').style.width = '50%';
+        document.getElementById('sd3').className = 'step-dot done';
+        if (userRole === 'buyer' && !pagoConfirmado) payCard.style.display = 'block';
+        if (userRole === 'seller') sellerMsg.style.display = 'block';
+    }
 }
 
-function copyAddress() {
-  navigator.clipboard && navigator.clipboard.writeText(BOT_WALLET);
-  const btn = document.getElementById('copy-btn');
-  btn.textContent = L === 'es' ? '✅ Copiado!' : '✅ Copied!';
-  setTimeout(() => { btn.textContent = t('copy-btn'); }, 2000);
+// ── PAGO CON TONCONNECT ───────────────────────────────────────────────────────
+
+async function pagarConWallet() {
+    const wallet = tonConnectUI.wallet;
+    if (!wallet) { await tonConnectUI.openModal(); return; }
+    const total = parseFloat(currentTx.total_depositar || currentTx.total || 0);
+    const amountNano = BigInt(Math.round(total * 1e6)).toString();
+    const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+    try {
+        const tonweb = new TonWeb();
+        const jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, { address: USDT_MASTER });
+        const walletAddress = wallet.account.address;
+        const jettonWalletAddress = await jettonMinter.getJettonWalletAddress(new TonWeb.utils.Address(walletAddress));
+        const forwardPayload = new TonWeb.boc.Cell();
+        forwardPayload.bits.writeUint(0, 32);
+        forwardPayload.bits.writeString(currentTx.code);
+        const body = new TonWeb.boc.Cell();
+        body.bits.writeUint(0xf8a7ea5, 32);
+        body.bits.writeUint(0, 64);
+        body.bits.writeCoins(amountNano);
+        body.bits.writeAddress(new TonWeb.utils.Address(BOT_WALLET));
+        body.bits.writeAddress(new TonWeb.utils.Address(walletAddress));
+        body.bits.writeBit(false);
+        body.bits.writeCoins(TonWeb.utils.toNano('0.01'));
+        body.bits.writeBit(true);
+        body.refs.push(forwardPayload);
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 600,
+            messages: [{ address: jettonWalletAddress.toString(true, true, true), amount: '60000000', payload: TonWeb.utils.bytesToBase64(await body.toBoc()) }]
+        };
+        await tonConnectUI.sendTransaction(transaction);
+        await db.from('transacciones').update({ estado: 'verificando_pago', pago_confirmado: true }).eq('id', txId);
+        currentTx = { ...currentTx, estado: 'verificando_pago', pago_confirmado: true };
+        updateVaultState('verificando_pago', true, currentTx.archivo_subido);
+    } catch(e) { alert('Error: ' + e.message); }
 }
 
-async function confirmPaid() {
-  if (!currentTx) return;
-  const wallet = tonConnectUI.wallet;
-  if (!wallet) { await tonConnectUI.openModal(); return; }
-  const total = parseFloat(currentTx.total_depositar || currentTx.total || 0);
-  const amountNano = BigInt(Math.round(total * 1e6)).toString();
-  const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-  const BOT_WALLET_ADDR = 'UQDuAM7-g7P-GGGPXX21WZzG-0yJX79eLzP96qsaJp_6MLac';
-  try {
-    const tonweb = new TonWeb();
-    const jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, { address: USDT_MASTER });
-    const walletAddress = wallet.account.address;
-    const jettonWalletAddress = await jettonMinter.getJettonWalletAddress(new TonWeb.utils.Address(walletAddress));
-    const forwardPayload = new TonWeb.boc.Cell();
-    forwardPayload.bits.writeUint(0, 32);
-    forwardPayload.bits.writeString(currentTx.code);
-    const body = new TonWeb.boc.Cell();
-    body.bits.writeUint(0xf8a7ea5, 32);
-    body.bits.writeUint(0, 64);
-    body.bits.writeCoins(amountNano);
-    body.bits.writeAddress(new TonWeb.utils.Address(BOT_WALLET_ADDR));
-    body.bits.writeAddress(new TonWeb.utils.Address(walletAddress));
-    body.bits.writeBit(false);
-    body.bits.writeCoins(TonWeb.utils.toNano('0.01'));
-    body.bits.writeBit(true);
-    body.refs.push(forwardPayload);
-    const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 600,
-      messages: [{ address: jettonWalletAddress.toString(true, true, true), amount: '60000000', payload: TonWeb.utils.bytesToBase64(await body.toBoc()) }]
-    };
-    await tonConnectUI.sendTransaction(transaction);
-    await db.from('transacciones').update({ estado: 'verificando_pago', pago_confirmado: true }).eq('id', txId);
-    updateVaultState('verificando_pago');
-  } catch(e) { alert('Error: ' + e.message); }
-}
+// ── SUBIDA A SUPABASE STORAGE ─────────────────────────────────────────────────
 
-// ── SUBIDA REAL A SUPABASE STORAGE ──────────────────────────────────────────
 async function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  // Validar tamaño (50MB)
-  if (file.size > 50 * 1024 * 1024) {
-    alert(L === 'es' ? 'Archivo demasiado grande. Máximo 50MB.' : 'File too large. Maximum 50MB.');
-    event.target.value = '';
-    return;
-  }
-
-  const extension = file.name.split('.').pop().toUpperCase();
-  const tamanoMB = (file.size / (1024 * 1024)).toFixed(2);
-  const filePath = txId + '/' + Date.now() + '_' + file.name;
-
-  // Mostrar progreso
-  const uploadZone = document.getElementById('upload-zone');
-  const uploadProgress = document.getElementById('upload-progress');
-  const progressFill = document.getElementById('upload-progress-fill');
-  const progressText = document.getElementById('upload-progress-text');
-  uploadZone.style.opacity = '0.5';
-  uploadZone.style.pointerEvents = 'none';
-  uploadProgress.style.display = 'block';
-  progressText.textContent = L === 'es' ? 'Subiendo archivo...' : 'Uploading file...';
-
-  // Animación de progreso simulada mientras sube
-  let prog = 0;
-  const progInterval = setInterval(() => {
-    prog = Math.min(prog + 5, 90);
-    progressFill.style.width = prog + '%';
-  }, 200);
-
-  // Subir a Supabase Storage
-  const { error: uploadError } = await db.storage
-    .from('Productos')
-    .upload(filePath, file, { upsert: true, cacheControl: '3600' });
-
-  clearInterval(progInterval);
-
-  if (uploadError) {
-    progressFill.style.width = '0%';
-    uploadZone.style.opacity = '1';
-    uploadZone.style.pointerEvents = 'auto';
-    uploadProgress.style.display = 'none';
-    alert(L === 'es' ? 'Error al subir el archivo: ' + uploadError.message : 'Upload error: ' + uploadError.message);
-    return;
-  }
-
-  // Subida completada
-  progressFill.style.width = '100%';
-  progressText.textContent = L === 'es' ? '✅ Subido correctamente' : '✅ Upload complete';
-  document.getElementById('upload-text').textContent = '✅ ' + file.name;
-
-  // Guardar en Supabase
-  const { error } = await db.from('transacciones').update({
-    estado: 'entregado',
-    archivo_nombre: file.name,
-    archivo_path: filePath,
-    archivo_tamano: tamanoMB,
-    archivo_extension: extension,
-    archivo_subido: true
-  }).eq('id', txId);
-
-  console.log('Update archivo:', error ? error.message : 'OK', 'txId:', txId);
-
-  currentTx = { ...currentTx, archivo_subido: true, archivo_nombre: file.name, archivo_path: filePath, archivo_tamano: tamanoMB, archivo_extension: extension, estado: 'entregado' };
-
-  // Actualizar UI
-  document.getElementById('upload-card').style.display = 'none';
-  document.getElementById('slot-product').className = 'vslot filled';
-  document.getElementById('slot-product-status').className = 'slot-status ok';
-  document.getElementById('slot-product-status').textContent = t('slot-uploaded');
-  document.getElementById('progress-fill').style.width = '75%';
-  document.getElementById('sd3').className = 'step-dot done';
-  document.getElementById('sd4').className = 'step-dot active';
-
-  renderDeal(currentTx);
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+        alert('Archivo demasiado grande. Máximo 50MB.\n\nSi tu archivo es mayor, sube un .txt con el enlace y contraseña.');
+        event.target.value = '';
+        return;
+    }
+    const extension = file.name.split('.').pop().toUpperCase();
+    const tamanoMB = (file.size / (1024 * 1024)).toFixed(2);
+    const filePath = txId + '/' + Date.now() + '_' + file.name;
+    const uploadZone = document.getElementById('upload-zone');
+    const uploadProgress = document.getElementById('upload-progress');
+    const progressFill = document.getElementById('upload-progress-fill');
+    const progressText = document.getElementById('upload-progress-text');
+    uploadZone.style.opacity = '0.5';
+    uploadZone.style.pointerEvents = 'none';
+    uploadProgress.style.display = 'block';
+    progressText.textContent = 'Subiendo archivo...';
+    let prog = 0;
+    const progInterval = setInterval(() => {
+        prog = Math.min(prog + 5, 90);
+        progressFill.style.width = prog + '%';
+    }, 200);
+    const { error: uploadError } = await db.storage.from('Productos').upload(filePath, file, { upsert: true });
+    clearInterval(progInterval);
+    if (uploadError) {
+        progressFill.style.width = '0%';
+        uploadZone.style.opacity = '1';
+        uploadZone.style.pointerEvents = 'auto';
+        uploadProgress.style.display = 'none';
+        alert('Error al subir el archivo: ' + uploadError.message);
+        return;
+    }
+    progressFill.style.width = '100%';
+    progressText.textContent = '✅ Subido correctamente';
+    document.getElementById('upload-text').textContent = '✅ ' + file.name;
+    await db.from('transacciones').update({
+        estado: 'entregado',
+        archivo_nombre: file.name,
+        archivo_path: filePath,
+        archivo_tamano: tamanoMB,
+        archivo_extension: extension,
+        archivo_subido: true
+    }).eq('id', txId);
+    currentTx = { ...currentTx, archivo_subido: true, archivo_nombre: file.name, archivo_path: filePath, archivo_tamano: tamanoMB, archivo_extension: extension, estado: 'entregado' };
+    document.getElementById('upload-card').style.display = 'none';
+    renderDeal(currentTx);
 }
 
-// ── DESCARGA SEGURA ──────────────────────────────────────────────────────────
+// ── DESCARGA SEGURA ───────────────────────────────────────────────────────────
+
 async function descargarArchivo() {
-  try {
+    try {
+        const initData = tg?.initData;
+        if (!initData) { alert('No se puede verificar tu identidad.'); return; }
+        const resp = await fetch(SERVER + '/descargar/' + txId + '?initData=' + encodeURIComponent(initData));
+        const data = await resp.json();
+        if (!data.url) { alert(data.error || 'No se pudo generar el enlace.'); return; }
+        window.open(data.url, '_blank');
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── EDITAR PRECIO ─────────────────────────────────────────────────────────────
+
+function mostrarEditarPrecio() {
+    document.getElementById('edit-price-card').style.display = 'block';
+    document.getElementById('edit-price-input').value = currentTx.vendedor_precio || '';
+    document.getElementById('edit-price-feedback').textContent = '';
+}
+
+function cancelarEditarPrecio() {
+    document.getElementById('edit-price-card').style.display = 'none';
+}
+
+async function guardarPrecio() {
+    const nuevoPrecio = parseFloat(document.getElementById('edit-price-input').value);
+    if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
+        document.getElementById('edit-price-feedback').textContent = 'Introduce un precio válido.';
+        return;
+    }
     const initData = tg?.initData;
     if (!initData) { alert('No se puede verificar tu identidad.'); return; }
-    const resp = await fetch('https://vandox-bot-production.up.railway.app/descargar/' + txId + '?initData=' + encodeURIComponent(initData));
+    const resp = await fetch(SERVER + '/precio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txId, precio: nuevoPrecio, initData })
+    });
     const data = await resp.json();
-    if (!data.url) { alert(data.error || 'No se pudo generar el enlace de descarga.'); return; }
-    window.open(data.url, '_blank');
-  } catch(e) {
-    alert('Error al descargar: ' + e.message);
-  }
+    if (!data.ok) {
+        document.getElementById('edit-price-feedback').textContent = data.error || 'Error al guardar.';
+        return;
+    }
+    currentTx = { ...currentTx, vendedor_precio: nuevoPrecio, fee: data.fee, total_depositar: data.total };
+    document.getElementById('edit-price-card').style.display = 'none';
+    renderDeal(currentTx);
+    alert('✅ Precio actualizado a $' + nuevoPrecio.toFixed(2));
 }
 
-async function releaseFunds() {
-  await db.from('transacciones').update({ estado: 'liberado' }).eq('id', txId);
-  if (tg) tg.sendData(JSON.stringify({ action: 'release', txId: txId }));
-  goTo('s-success');
-  if (userRole === 'buyer' && currentTx && currentTx.archivo_nombre) {
-    document.getElementById('success-download-wrap').style.display = 'block';
-  }
-}
+// ── SETUP TIPO ────────────────────────────────────────────────────────────────
 
-async function openDispute() {
-  await db.from('transacciones').update({ estado: 'disputa' }).eq('id', txId);
-  if (tg) tg.sendData(JSON.stringify({ action: 'dispute', txId: txId }));
-  alert(L === 'es' ? 'Disputa abierta. Vandox revisará el caso.' : 'Dispute opened. Vandox will review the case.');
-}
-
-function selectType(type) {
-  dealType = type;
-  db.from('transacciones').update({ tipo: type, estado: 'configurando' }).eq('id', txId).then(() => goTo('s-price'));
-}
-
-function selectRole(role) {
-  userRole = role;
-  const sellerBtn = document.getElementById('btn-seller');
-  const buyerBtn = document.getElementById('btn-buyer');
-  if (role === 'seller') {
-    sellerBtn.style.borderColor = '#00c896'; sellerBtn.style.background = 'rgba(0,200,150,0.1)';
-    buyerBtn.style.opacity = '0.4'; buyerBtn.style.pointerEvents = 'none';
-  } else {
-    buyerBtn.style.borderColor = '#00c896'; buyerBtn.style.background = 'rgba(0,200,150,0.1)';
-    sellerBtn.style.opacity = '0.4'; sellerBtn.style.pointerEvents = 'none';
-  }
-  document.getElementById('price-form').style.display = 'block';
+async function selectType(type) {
+    await db.from('transacciones').update({ tipo: type, estado: 'esperando_comprador_precio' }).eq('id', txId);
+    goTo('s-price');
+    document.getElementById('price-role-info').textContent = 'Eres el vendedor. Declara el precio acordado.';
 }
 
 async function declarePrice() {
-  const price = parseFloat(document.getElementById('price-input').value);
-  if (isNaN(price) || price <= 0) { alert('Introduce un precio válido'); return; }
-  const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
-  if (userRole === 'seller') {
-    await db.from('transacciones').update({ vendedor_precio: price, estado: 'esperando_comprador_precio' }).eq('id', txId);
+    const price = parseFloat(document.getElementById('price-input').value);
+    if (isNaN(price) || price <= 0) { alert('Introduce un precio válido'); return; }
+    const fee = calcFee(price);
+    const total = parseFloat((price + fee).toFixed(2));
+    await db.from('transacciones').update({
+        vendedor_precio: price,
+        vendedor_id: myTgId,
+        fee,
+        total_depositar: total,
+        estado: 'esperando_comprador_precio'
+    }).eq('id', txId);
     document.getElementById('price-feedback').style.display = 'block';
-    document.getElementById('price-feedback').innerHTML = '<div class="alert alert-success">✅ Precio declarado: <strong>$' + price.toFixed(2) + '</strong>. Esperando al comprador...</div>';
+    document.getElementById('price-feedback').innerHTML = '<div style="background:rgba(0,200,150,0.12);border:1px solid #00c896;border-radius:10px;padding:10px;font-size:13px;color:#00c896">✅ Precio declarado: <strong>$' + price.toFixed(2) + '</strong>. El comprador debe abrir la app para aceptar.</div>';
     document.getElementById('btn-declare').style.display = 'none';
-  } else {
-    if (!data.vendedor_precio) {
-      document.getElementById('price-feedback').style.display = 'block';
-      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">⏳ El vendedor aún no ha declarado el precio.</div>';
-      return;
-    }
-    if (parseFloat(data.vendedor_precio) === price) {
-      const fee = dealType === 'swap' ? 1.00 : (price <= 100 ? 1.00 : parseFloat((price * 0.015).toFixed(2)));
-      const total = parseFloat((price + fee).toFixed(2));
-      const nombreComprador = await getNombreDeUsuario();
-      await db.from('transacciones').update({ comprador_nombre: nombreComprador }).eq('id', txId);
-      const compradorTgId = tg?.initDataUnsafe?.user?.id?.toString();
-await db.from('transacciones').update({ comprador_precio: price, comprador_id: compradorTgId, fee, total_depositar: total, estado: 'esperando_pago' }).eq('id', txId);
-      currentTx = { ...data, comprador_precio: price, fee, total_depositar: total, estado: 'esperando_pago' };
-      renderDeal(currentTx);
-      goTo('s-deal');
-    } else {
-      document.getElementById('price-feedback').style.display = 'block';
-      document.getElementById('price-feedback').innerHTML = '<div class="alert alert-warn">❌ No coincide. El vendedor declaró $' + parseFloat(data.vendedor_precio).toFixed(2) + '. Corrígelo.</div>';
-    }
-  }
 }
 
+// ── POLLING ───────────────────────────────────────────────────────────────────
+
 setInterval(async () => {
-  if (!txId || !currentTx) return;
-  const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
-  if (!data) return;
-  if (data.estado !== currentTx.estado || data.archivo_subido !== currentTx.archivo_subido || data.pago_confirmado !== currentTx.pago_confirmado) {
+    if (!txId || !currentTx) return;
+    const { data } = await db.from('transacciones').select('*').eq('id', txId).single();
+    if (!data) return;
+    const changed = data.estado !== currentTx.estado || data.archivo_subido !== currentTx.archivo_subido || data.pago_confirmado !== currentTx.pago_confirmado;
+    if (!changed) return;
     currentTx = data;
-    renderDeal(data);
-    if (data.estado === 'esperando_pago') { renderDeal(data); goTo('s-deal'); }
-    if (data.estado === 'liberado') {
-      goTo('s-success');
-      if (userRole === 'buyer' && data.archivo_nombre) document.getElementById('success-download-wrap').style.display = 'block';
+    // Routing por estado actualizado
+    if (data.estado === 'esperando_comprador_precio' && userRole === 'buyer') {
+        mostrarConfirmacionComprador(data);
+        return;
     }
-    if (data.estado === 'esperando_comprador_precio') { dealType = data.tipo; goTo('s-price'); }
-  }
+    if (['esperando_pago','verificando_pago','entregado','liberado','liberando'].includes(data.estado)) {
+        renderDeal(data);
+        goTo('s-deal');
+    }
+    if (data.estado === 'liberado') {
+        goTo('s-success');
+        if (userRole === 'buyer' && data.archivo_nombre) {
+            document.getElementById('success-download-wrap').style.display = 'block';
+        }
+    }
 }, 5000);
 
-applyLang();
+// ── INICIO ────────────────────────────────────────────────────────────────────
 loadDeal();
 </script>
 </body>
