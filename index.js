@@ -225,26 +225,40 @@ async function verificarPagoUSDT(tx) {
 // ── LIBERAR AUTOMATICO (UNA SOLA FUNCION CON GUARD) ──────────────────────────
 
 async function liberarAutomatico(tx) {
-    // GUARD: verificar estado fresco desde Supabase antes de ejecutar
-    const txActual = await getTx(tx.id);
-    if (!txActual || txActual.estado === 'liberado') {
-        console.log('TX ya liberada o no encontrada, saltando:', tx.id);
+    // MUTEX ATOMICO: solo una instancia puede ganar el lock
+    // Supabase ejecuta este UPDATE de forma atomica
+    // Si el estado ya es 'liberando' o 'liberado', no actualiza ninguna fila
+    const { data: locked, error: lockError } = await supabase
+        .from('transacciones')
+        .update({ estado: 'liberando' })
+        .eq('id', tx.id)
+        .not('estado', 'in', '("liberando","liberado")')
+        .select()
+        .single();
+
+    if (lockError || !locked) {
+        console.log('TX ya siendo liberada o liberada, saltando:', tx.id);
         return;
     }
 
-    // Marcar como liberado PRIMERO para evitar doble ejecucion
-    await saveTx({ ...txActual, estado: 'liberado', verificado_chain: true });
+    console.log('Lock adquirido para TX:', tx.id, '— distribuyendo fondos...');
 
-    // Distribuir fondos
-    const ok = await distribuirFondos(txActual);
+    // Distribuir fondos con los datos frescos del lock
+    const ok = await distribuirFondos(locked);
 
-    // Notificar
-    const lang = txActual.lang || 'en';
-    const msg = txt(lang, 'released', { txid: txActual.id });
-    if (txActual.comprador_id) await bot.telegram.sendMessage(txActual.comprador_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
-    if (txActual.vendedor_id) await bot.telegram.sendMessage(txActual.vendedor_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
-    if (txActual.grupo_id) await bot.telegram.sendMessage(txActual.grupo_id, '🔗 ' + msg, { parse_mode: 'Markdown' }).catch(() => {});
-    await notifyAdmin('✅ Liberado automáticamente\nTX: ' + txActual.id + '\nDistribuido: ' + (ok ? 'SÍ' : 'ERROR'));
+    // Marcar como liberado definitivamente
+    await supabase
+        .from('transacciones')
+        .update({ estado: 'liberado', verificado_chain: true })
+        .eq('id', tx.id);
+
+    // Notificar a las partes
+    const lang = locked.lang || 'en';
+    const msg = txt(lang, 'released', { txid: locked.id });
+    if (locked.comprador_id) await bot.telegram.sendMessage(locked.comprador_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
+    if (locked.vendedor_id) await bot.telegram.sendMessage(locked.vendedor_id, msg, { parse_mode: 'Markdown' }).catch(() => {});
+    if (locked.grupo_id) await bot.telegram.sendMessage(locked.grupo_id, '🔗 ' + msg, { parse_mode: 'Markdown' }).catch(() => {});
+    await notifyAdmin('✅ Liberado\nTX: ' + locked.id + '\nDistribuido: ' + (ok ? 'SÍ' : 'ERROR'));
 }
 
 async function iniciarVerificacionActiva(txId) {
