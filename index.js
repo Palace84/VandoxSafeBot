@@ -170,17 +170,17 @@ async function enviarUSDT(destinatario, cantidad) {
 
 async function distribuirFondos(tx) {
     try {
-        const monto = parseFloat(tx.comprador_precio || 0);
-        const fee = parseFloat(tx.fee || 0);
+        const txFresca = await getTx(tx.id);
+        const monto = parseFloat(txFresca.comprador_precio || 0);
+        const fee = parseFloat(txFresca.fee || 0);
         const OWNER = process.env.OWNER_WALLET;
-
-        if (!tx.vendedor_wallet) {
+        if (!txFresca.vendedor_wallet) {
             console.log('Sin wallet de vendedor para TX:', tx.id);
             return false;
         }
 
         console.log('Distribuyendo TX:', tx.id, '| vendedor:', monto, '| fee:', fee);
-        const ok1 = await enviarUSDT(tx.vendedor_wallet, monto);
+        const ok1 = await enviarUSDT(txFresca.vendedor_wallet, monto);
         await new Promise(r => setTimeout(r, 15000)); // esperar 15s para evitar conflicto de seqno
         const ok2 = await enviarUSDT(OWNER, fee);
         console.log('Distribucion completada. Vendedor:', ok1, '| Fee:', ok2);
