@@ -773,6 +773,16 @@ setInterval(async () => {
         renderDeal(data);
         goTo('s-deal');
     }
+  if (data.estado === 'liberando') {
+    fetch(SERVER + '/liberar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txId })
+    });
+}
+if (data.estado === 'liberado') {
+    renderDeal(data);
+}
     if (data.estado === 'liberado') {
         renderDeal(data);
     }
