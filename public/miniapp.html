@@ -556,7 +556,7 @@ function updateVaultState(estado, pagoConfirmado, archivoSubido) {
         productStatus.textContent = 'Subido ✓';
     }
 
-    if (pagoConfirmado && archivoSubido && estado !== 'liberado' && estado !== 'liberando') {
+    if (pagoConfirmado && archivoSubido && estado !== 'liberado') {
         fetch(SERVER + '/liberar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
